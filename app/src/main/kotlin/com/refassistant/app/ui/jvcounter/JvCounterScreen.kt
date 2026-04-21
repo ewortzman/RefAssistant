@@ -1,6 +1,7 @@
 package com.refassistant.app.ui.jvcounter
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,11 +34,16 @@ fun JvCounterScreen(
     jvCount: Int,
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
-    onReset: () -> Unit
+    onReset: () -> Unit,
+    isAmbient: Boolean = false
 ) {
     var showConfirm by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -46,7 +52,7 @@ fun JvCounterScreen(
             Text(
                 text = "JVs",
                 style = MaterialTheme.typography.caption1,
-                color = Color.Gray
+                color = if (isAmbient) Color.DarkGray else Color.Gray
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -56,39 +62,41 @@ fun JvCounterScreen(
                 style = MaterialTheme.typography.display1,
                 color = Color.White,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.combinedClickable(
+                modifier = if (isAmbient) Modifier else Modifier.combinedClickable(
                     onClick = {},
                     onLongClick = { showConfirm = true }
                 )
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (!isAmbient) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = onDecrement,
-                    modifier = Modifier.size(48.dp),
-                    colors = ButtonDefaults.secondaryButtonColors(),
-                    shape = CircleShape
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("−", style = MaterialTheme.typography.title1)
-                }
+                    Button(
+                        onClick = onDecrement,
+                        modifier = Modifier.size(48.dp),
+                        colors = ButtonDefaults.secondaryButtonColors(),
+                        shape = CircleShape
+                    ) {
+                        Text("−", style = MaterialTheme.typography.title1)
+                    }
 
-                Button(
-                    onClick = onIncrement,
-                    modifier = Modifier.size(48.dp),
-                    colors = ButtonDefaults.primaryButtonColors(),
-                    shape = CircleShape
-                ) {
-                    Text("+", style = MaterialTheme.typography.title1)
+                    Button(
+                        onClick = onIncrement,
+                        modifier = Modifier.size(48.dp),
+                        colors = ButtonDefaults.primaryButtonColors(),
+                        shape = CircleShape
+                    ) {
+                        Text("+", style = MaterialTheme.typography.title1)
+                    }
                 }
             }
         }
 
-        if (showConfirm) {
+        if (!isAmbient && showConfirm) {
             ConfirmDialog(
                 message = "Reset JV count?",
                 onConfirm = {

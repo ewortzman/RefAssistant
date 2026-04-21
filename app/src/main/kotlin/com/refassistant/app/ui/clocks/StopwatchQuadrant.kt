@@ -26,14 +26,20 @@ fun StopwatchQuadrant(
     tickNanos: Long,
     onTap: () -> Unit,
     onLongPress: () -> Unit,
+    isAmbient: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val displayMs = stopwatchState.displayElapsedMs(tickNanos)
-    val timeColor = when {
-        stopwatchState.isRunning -> Color.Yellow
-        displayMs > 0 -> Color(0xFFFFAB40)
-        else -> Color.White
+    val timeColor = if (isAmbient) {
+        if (displayMs > 0) Color.White else Color.DarkGray
+    } else {
+        when {
+            stopwatchState.isRunning -> Color.Yellow
+            displayMs > 0 -> Color(0xFFFFAB40)
+            else -> Color.White
+        }
     }
+    val iconTint = if (isAmbient) Color.Gray else Color.White
 
     Column(
         modifier = modifier.combinedClickable(
@@ -46,7 +52,7 @@ fun StopwatchQuadrant(
         Icon(
             painter = painterResource(id = clockType.iconRes),
             contentDescription = clockType.label,
-            tint = Color.White,
+            tint = iconTint,
             modifier = Modifier.size(20.dp)
         )
         Text(

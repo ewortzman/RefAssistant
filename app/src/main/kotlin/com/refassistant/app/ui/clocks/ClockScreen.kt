@@ -28,9 +28,11 @@ fun ClockScreen(
     clocks: Map<ClockType, StopwatchState>,
     tickNanos: Long,
     onToggle: (ClockType) -> Unit,
-    onReset: (ClockType) -> Unit
+    onReset: (ClockType) -> Unit,
+    isAmbient: Boolean = false
 ) {
-    val bgColor = if (color == ClockColor.RED) DeepRed else DeepGreen
+    val bgColor = if (isAmbient) Color.Black
+        else if (color == ClockColor.RED) DeepRed else DeepGreen
     val quadrantSize = 80.dp
     var confirmResetType by remember { mutableStateOf<ClockType?>(null) }
 
@@ -43,8 +45,9 @@ fun ClockScreen(
             clockType = ClockType.BLOOD,
             stopwatchState = clocks[ClockType.BLOOD] ?: StopwatchState(),
             tickNanos = tickNanos,
-            onTap = { onToggle(ClockType.BLOOD) },
-            onLongPress = { confirmResetType = ClockType.BLOOD },
+            onTap = { if (!isAmbient) onToggle(ClockType.BLOOD) },
+            onLongPress = { if (!isAmbient) confirmResetType = ClockType.BLOOD },
+            isAmbient = isAmbient,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 16.dp)
@@ -55,8 +58,9 @@ fun ClockScreen(
             clockType = ClockType.INJURY,
             stopwatchState = clocks[ClockType.INJURY] ?: StopwatchState(),
             tickNanos = tickNanos,
-            onTap = { onToggle(ClockType.INJURY) },
-            onLongPress = { confirmResetType = ClockType.INJURY },
+            onTap = { if (!isAmbient) onToggle(ClockType.INJURY) },
+            onLongPress = { if (!isAmbient) confirmResetType = ClockType.INJURY },
+            isAmbient = isAmbient,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = 4.dp)
@@ -67,8 +71,9 @@ fun ClockScreen(
             clockType = ClockType.RECOVERY,
             stopwatchState = clocks[ClockType.RECOVERY] ?: StopwatchState(),
             tickNanos = tickNanos,
-            onTap = { onToggle(ClockType.RECOVERY) },
-            onLongPress = { confirmResetType = ClockType.RECOVERY },
+            onTap = { if (!isAmbient) onToggle(ClockType.RECOVERY) },
+            onLongPress = { if (!isAmbient) confirmResetType = ClockType.RECOVERY },
+            isAmbient = isAmbient,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 16.dp)
@@ -79,23 +84,26 @@ fun ClockScreen(
             clockType = ClockType.HNC,
             stopwatchState = clocks[ClockType.HNC] ?: StopwatchState(),
             tickNanos = tickNanos,
-            onTap = { onToggle(ClockType.HNC) },
-            onLongPress = { confirmResetType = ClockType.HNC },
+            onTap = { if (!isAmbient) onToggle(ClockType.HNC) },
+            onLongPress = { if (!isAmbient) confirmResetType = ClockType.HNC },
+            isAmbient = isAmbient,
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .padding(start = 4.dp)
                 .size(quadrantSize)
         )
 
-        confirmResetType?.let { type ->
-            ConfirmDialog(
-                message = "Reset ${type.label}?",
-                onConfirm = {
-                    onReset(type)
-                    confirmResetType = null
-                },
-                onDismiss = { confirmResetType = null }
-            )
+        if (!isAmbient) {
+            confirmResetType?.let { type ->
+                ConfirmDialog(
+                    message = "Reset ${type.label}?",
+                    onConfirm = {
+                        onReset(type)
+                        confirmResetType = null
+                    },
+                    onDismiss = { confirmResetType = null }
+                )
+            }
         }
     }
 }

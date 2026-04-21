@@ -32,11 +32,12 @@ import com.refassistant.app.model.WeightClass
 fun MatchScreen(
     currentWeight: WeightClass,
     onNextMatch: () -> Unit,
-    onSetStartingWeight: (WeightClass) -> Unit
+    onSetStartingWeight: (WeightClass) -> Unit,
+    isAmbient: Boolean = false
 ) {
     var showPicker by remember { mutableStateOf(false) }
 
-    if (showPicker) {
+    if (showPicker && !isAmbient) {
         WeightClassPicker(
             onSelect = { weight ->
                 onSetStartingWeight(weight)
@@ -47,7 +48,11 @@ fun MatchScreen(
         return
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -56,7 +61,7 @@ fun MatchScreen(
             Text(
                 text = "Match",
                 style = MaterialTheme.typography.caption1,
-                color = Color.Gray
+                color = if (isAmbient) Color.DarkGray else Color.Gray
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -66,49 +71,51 @@ fun MatchScreen(
                 style = MaterialTheme.typography.display1,
                 color = Color.White,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.combinedClickable(
+                modifier = if (isAmbient) Modifier else Modifier.combinedClickable(
                     onClick = {},
                     onLongClick = { showPicker = true }
                 )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (!isAmbient) {
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Button(onClick = onNextMatch) {
-                Text("Next Match", style = MaterialTheme.typography.body2)
+                Button(onClick = onNextMatch) {
+                    Text("Next Match", style = MaterialTheme.typography.body2)
+                }
             }
         }
 
-        // Red edge hint (left)
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .width(12.dp)
-                .fillMaxHeight()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Red.copy(alpha = 0.5f),
-                            Color.Transparent
+        if (!isAmbient) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .width(12.dp)
+                    .fillMaxHeight()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Red.copy(alpha = 0.5f),
+                                Color.Transparent
+                            )
                         )
                     )
-                )
-        )
+            )
 
-        // Green edge hint (right)
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .width(12.dp)
-                .fillMaxHeight()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Green.copy(alpha = 0.5f)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .width(12.dp)
+                    .fillMaxHeight()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Green.copy(alpha = 0.5f)
+                            )
                         )
                     )
-                )
-        )
+            )
+        }
     }
 }
