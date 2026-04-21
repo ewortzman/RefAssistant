@@ -4,15 +4,24 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Circular arrows -->
+    <!-- Clockwise arc: top to right -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M12,4V1L8,5l4,4V6c3.31,0 6,2.69 6,6c0,1.01 -0.25,1.97 -0.7,2.8l1.46,1.46C19.54,15.03 20,13.57 20,12C20,7.58 16.42,4 12,4z" />
+        android:pathData="M12,5C15.87,5 19,8.13 19,12h-1.5C17.5,8.96 15.04,6.5 12,6.5V5z" />
+    <!-- Right arrowhead: right angle pointing down -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M12,18c-3.31,0 -6,-2.69 -6,-6c0,-1.01 0.25,-1.97 0.7,-2.8L5.24,7.74C4.46,8.97 4,10.43 4,12c0,4.42 3.58,8 8,8v3l4,-4l-4,-4V18z" />
-    <!-- Small cross in center -->
+        android:pathData="M16.87,11.85L19.62,11.85L18.25,13.225z" />
+    <!-- Counter-clockwise arc: bottom to left -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M13,10h-2v2H9v2h2v2h2v-2h2v-2h-2z" />
+        android:pathData="M12,19C8.13,19 5,15.87 5,12h1.5C6.5,15.04 8.96,17.5 12,17.5V19z" />
+    <!-- Left arrowhead: right angle pointing up -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M4.38,12.15L7.13,12.15L5.75,10.775z" />
+    <!-- Centered cross with rounded corners -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M11.25,9a0.75,0.75 0,0 1,1.5 0v2.25H15a0.75,0.75 0,0 1,0 1.5h-2.25V15a0.75,0.75 0,0 1,-1.5 0v-2.25H9a0.75,0.75 0,0 1,0 -1.5h2.25V9z" />
 </vector>
