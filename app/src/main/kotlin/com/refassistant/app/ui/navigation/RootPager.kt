@@ -42,8 +42,9 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                         )
                         1 -> MatchScreen(
                             currentWeight = state.currentWeight,
+                            currentFormat = state.weightFormat,
                             onNextMatch = viewModel::nextMatch,
-                            onSetStartingWeight = viewModel::setStartingWeight,
+                            onSetFormatAndWeight = viewModel::setFormatAndWeight,
                             isAmbient = isAmbient
                         )
                         2 -> ClockScreen(

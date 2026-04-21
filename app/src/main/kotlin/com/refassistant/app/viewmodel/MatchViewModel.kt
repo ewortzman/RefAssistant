@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.refassistant.app.model.ClockType
 import com.refassistant.app.model.StopwatchState
 import com.refassistant.app.model.WeightClass
+import com.refassistant.app.model.WeightFormat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,8 +16,10 @@ import kotlinx.coroutines.launch
 enum class ClockColor { RED, GREEN }
 
 data class MatchUiState(
-    val currentWeight: WeightClass = WeightClass.W106,
-    val startingWeight: WeightClass = WeightClass.W106,
+    val weightFormat: WeightFormat = WeightFormat.BOYS_14,
+    val weightList: List<WeightClass> = WeightClass.listFor(WeightFormat.BOYS_14),
+    val currentWeight: WeightClass = WeightClass.defaultFirst(),
+    val startingWeight: WeightClass = WeightClass.defaultFirst(),
     val redClocks: Map<ClockType, StopwatchState> = ClockType.entries.associateWith { StopwatchState() },
     val greenClocks: Map<ClockType, StopwatchState> = ClockType.entries.associateWith { StopwatchState() },
     val jvCount: Int = 0
@@ -47,9 +50,12 @@ class MatchViewModel : ViewModel() {
                 state.greenClocks.values.any { it.isRunning }
     }
 
-    fun setStartingWeight(weight: WeightClass) {
+    fun setFormatAndWeight(format: WeightFormat, weight: WeightClass) {
+        val list = WeightClass.listFor(format)
         _uiState.update {
             it.copy(
+                weightFormat = format,
+                weightList = list,
                 currentWeight = weight,
                 startingWeight = weight,
                 redClocks = ClockType.entries.associateWith { StopwatchState() },
@@ -60,9 +66,9 @@ class MatchViewModel : ViewModel() {
 
     fun nextMatch() {
         _uiState.update { state ->
-            val isJv = state.currentWeight == WeightClass.JV
+            val isJv = state.currentWeight.isJv
             state.copy(
-                currentWeight = if (isJv) WeightClass.JV else state.currentWeight.next(),
+                currentWeight = if (isJv) state.currentWeight else state.currentWeight.next(state.weightList),
                 jvCount = if (isJv) state.jvCount + 1 else state.jvCount,
                 redClocks = ClockType.entries.associateWith { StopwatchState() },
                 greenClocks = ClockType.entries.associateWith { StopwatchState() }

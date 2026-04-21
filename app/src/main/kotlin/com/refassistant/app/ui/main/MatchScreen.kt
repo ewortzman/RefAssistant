@@ -26,21 +26,24 @@ import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.refassistant.app.model.WeightClass
+import com.refassistant.app.model.WeightFormat
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MatchScreen(
     currentWeight: WeightClass,
+    currentFormat: WeightFormat,
     onNextMatch: () -> Unit,
-    onSetStartingWeight: (WeightClass) -> Unit,
+    onSetFormatAndWeight: (WeightFormat, WeightClass) -> Unit,
     isAmbient: Boolean = false
 ) {
     var showPicker by remember { mutableStateOf(false) }
 
     if (showPicker && !isAmbient) {
         WeightClassPicker(
-            onSelect = { weight ->
-                onSetStartingWeight(weight)
+            currentFormat = currentFormat,
+            onSelect = { format, weight ->
+                onSetFormatAndWeight(format, weight)
                 showPicker = false
             },
             onDismiss = { showPicker = false }
@@ -59,7 +62,7 @@ fun MatchScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Match",
+                text = currentFormat.label,
                 style = MaterialTheme.typography.caption1,
                 color = if (isAmbient) Color.DarkGray else Color.Gray
             )
