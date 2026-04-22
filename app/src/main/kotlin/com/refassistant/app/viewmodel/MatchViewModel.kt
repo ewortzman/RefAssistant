@@ -17,9 +17,9 @@ enum class ClockColor { RED, GREEN }
 
 data class MatchUiState(
     val weightFormat: WeightFormat = WeightFormat.BOYS_14,
-    val weightList: List<WeightClass> = WeightClass.listFor(WeightFormat.BOYS_14),
+    val matchOrder: List<WeightClass> = WeightClass.buildMatchOrder(WeightFormat.BOYS_14, WeightClass.defaultFirst()),
+    val matchIndex: Int = 0,
     val currentWeight: WeightClass = WeightClass.defaultFirst(),
-    val startingWeight: WeightClass = WeightClass.defaultFirst(),
     val redClocks: Map<ClockType, StopwatchState> = ClockType.entries.associateWith { StopwatchState() },
     val greenClocks: Map<ClockType, StopwatchState> = ClockType.entries.associateWith { StopwatchState() },
     val jvCount: Int = 0
@@ -51,13 +51,14 @@ class MatchViewModel : ViewModel() {
     }
 
     fun setFormatAndWeight(format: WeightFormat, weight: WeightClass) {
-        val list = WeightClass.listFor(format)
+        val matchOrder = if (format == WeightFormat.JV) emptyList()
+            else WeightClass.buildMatchOrder(format, weight)
         _uiState.update {
             it.copy(
                 weightFormat = format,
-                weightList = list,
-                currentWeight = weight,
-                startingWeight = weight,
+                matchOrder = matchOrder,
+                matchIndex = 0,
+                currentWeight = if (format == WeightFormat.JV) WeightClass.JV else weight,
                 redClocks = ClockType.entries.associateWith { StopwatchState() },
                 greenClocks = ClockType.entries.associateWith { StopwatchState() }
             )
@@ -66,13 +67,31 @@ class MatchViewModel : ViewModel() {
 
     fun nextMatch() {
         _uiState.update { state ->
-            val isJv = state.currentWeight.isJv
-            state.copy(
-                currentWeight = if (isJv) state.currentWeight else state.currentWeight.next(state.weightList),
-                jvCount = if (isJv) state.jvCount + 1 else state.jvCount,
-                redClocks = ClockType.entries.associateWith { StopwatchState() },
-                greenClocks = ClockType.entries.associateWith { StopwatchState() }
-            )
+            val resetClocks = ClockType.entries.associateWith { StopwatchState() }
+            if (state.currentWeight.isJv) {
+                state.copy(
+                    jvCount = state.jvCount + 1,
+                    redClocks = resetClocks,
+                    greenClocks = resetClocks
+                )
+            } else {
+                val nextIndex = state.matchIndex + 1
+                if (nextIndex >= state.matchOrder.size) {
+                    state.copy(
+                        matchIndex = nextIndex,
+                        currentWeight = WeightClass.JV,
+                        redClocks = resetClocks,
+                        greenClocks = resetClocks
+                    )
+                } else {
+                    state.copy(
+                        matchIndex = nextIndex,
+                        currentWeight = state.matchOrder[nextIndex],
+                        redClocks = resetClocks,
+                        greenClocks = resetClocks
+                    )
+                }
+            }
         }
     }
 

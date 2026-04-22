@@ -30,7 +30,13 @@ fun WeightClassPicker(
     if (selectedFormat == null) {
         FormatPicker(
             currentFormat = currentFormat,
-            onSelectFormat = { selectedFormat = it }
+            onSelectFormat = { format ->
+                if (format == WeightFormat.JV) {
+                    onSelect(format, WeightClass.JV)
+                } else {
+                    selectedFormat = format
+                }
+            }
         )
     } else {
         WeightPicker(
