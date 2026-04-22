@@ -16,8 +16,8 @@ import kotlinx.coroutines.launch
 enum class ClockColor { RED, GREEN }
 
 data class MatchUiState(
-    val weightFormat: WeightFormat = WeightFormat.BOYS_14,
-    val matchOrder: List<WeightClass> = WeightClass.buildMatchOrder(WeightFormat.BOYS_14, WeightClass.defaultFirst()),
+    val weightFormat: WeightFormat = WeightFormat.COED_14,
+    val matchOrder: List<WeightClass> = WeightClass.buildMatchOrder(WeightFormat.COED_14, WeightClass.defaultFirst()),
     val matchIndex: Int = 0,
     val currentWeight: WeightClass = WeightClass.defaultFirst(),
     val redClocks: Map<ClockType, StopwatchState> = ClockType.entries.associateWith { StopwatchState() },
