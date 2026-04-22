@@ -9,8 +9,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,8 +86,19 @@ fun MatchScreen(
             if (!isAmbient) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button(onClick = onNextMatch) {
-                    Text("Next Match", style = MaterialTheme.typography.body2)
+                Button(
+                    onClick = onNextMatch,
+                    modifier = Modifier
+                        .fillMaxWidth(0.65f)
+                        .height(36.dp),
+                    shape = RoundedCornerShape(50)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Text("Next Match", style = MaterialTheme.typography.body2)
+                    }
                 }
             }
         }
@@ -93,7 +107,7 @@ fun MatchScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .width(12.dp)
+                    .width(15.dp)
                     .fillMaxHeight()
                     .background(
                         Brush.horizontalGradient(
@@ -108,7 +122,7 @@ fun MatchScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .width(12.dp)
+                    .width(15.dp)
                     .fillMaxHeight()
                     .background(
                         Brush.horizontalGradient(
