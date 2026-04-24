@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "RefAssistant"
+rootProject.name = "MatTimer"
 include(":app")
