@@ -1,7 +1,6 @@
 package com.refassistant.app.ui.clocks
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
@@ -9,8 +8,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
@@ -18,14 +20,16 @@ import com.refassistant.app.model.ClockType
 import com.refassistant.app.model.StopwatchState
 import com.refassistant.app.util.formatElapsedTime
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StopwatchQuadrant(
     clockType: ClockType,
     stopwatchState: StopwatchState,
     tickNanos: Long,
     onTap: () -> Unit,
+    onDoubleTap: () -> Unit,
     onLongPress: () -> Unit,
+    injuryTimeouts: Int = 0,
+    hncUsed: Boolean = false,
     isAmbient: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -44,10 +48,13 @@ fun StopwatchQuadrant(
     val iconTint = if (isAmbient) Color.Gray else Color.White
 
     Column(
-        modifier = modifier.combinedClickable(
-            onClick = onTap,
-            onLongClick = onLongPress
-        ),
+        modifier = modifier.pointerInput(Unit) {
+            detectTapGestures(
+                onDoubleTap = { onDoubleTap() },
+                onLongPress = { onLongPress() },
+                onTap = { onTap() }
+            )
+        },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -62,5 +69,25 @@ fun StopwatchQuadrant(
             style = MaterialTheme.typography.body2,
             color = timeColor
         )
+        val dotText = when (clockType) {
+            ClockType.INJURY -> {
+                if (injuryTimeouts >= 3) "DEF"
+                else "•".repeat(injuryTimeouts)
+            }
+            ClockType.HNC -> {
+                if (hncUsed) "•" else ""
+            }
+            else -> ""
+        }
+        if (dotText.isNotEmpty()) {
+            val isDefault = clockType == ClockType.INJURY && injuryTimeouts >= 3
+            Text(
+                text = dotText,
+                fontSize = if (isDefault) 10.sp else 8.sp,
+                fontWeight = if (isDefault) FontWeight.Bold else FontWeight.Normal,
+                color = if (isDefault) Color.Red else Color.White,
+                letterSpacing = if (!isDefault) 2.sp else 0.sp
+            )
+        }
     }
 }

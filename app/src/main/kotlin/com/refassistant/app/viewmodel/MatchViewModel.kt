@@ -15,6 +15,12 @@ import kotlinx.coroutines.launch
 
 enum class ClockColor { RED, GREEN }
 
+data class ClockUndoSnapshot(
+    val clockState: StopwatchState,
+    val injuryTimeouts: Int,
+    val hncUsed: Boolean
+)
+
 data class MatchUiState(
     val weightFormat: WeightFormat = WeightFormat.COED_14,
     val matchOrder: List<WeightClass> = WeightClass.buildMatchOrder(WeightFormat.COED_14, WeightClass.defaultFirst()),
@@ -22,6 +28,12 @@ data class MatchUiState(
     val currentWeight: WeightClass = WeightClass.defaultFirst(),
     val redClocks: Map<ClockType, StopwatchState> = ClockType.entries.associateWith { StopwatchState() },
     val greenClocks: Map<ClockType, StopwatchState> = ClockType.entries.associateWith { StopwatchState() },
+    val redInjuryTimeouts: Int = 0,
+    val greenInjuryTimeouts: Int = 0,
+    val redHncUsed: Boolean = false,
+    val greenHncUsed: Boolean = false,
+    val redUndo: Map<ClockType, ClockUndoSnapshot> = emptyMap(),
+    val greenUndo: Map<ClockType, ClockUndoSnapshot> = emptyMap(),
     val jvCount: Int = 0
 )
 
@@ -73,6 +85,8 @@ class MatchViewModel : ViewModel() {
                 state.greenClocks.values.any { it.isRunning }
     }
 
+    private val freshClocks get() = ClockType.entries.associateWith { StopwatchState() }
+
     fun setFormatAndWeight(format: WeightFormat, weight: WeightClass) {
         val matchOrder = if (format == WeightFormat.JV) emptyList()
             else WeightClass.buildMatchOrder(format, weight)
@@ -82,73 +96,116 @@ class MatchViewModel : ViewModel() {
                 matchOrder = matchOrder,
                 matchIndex = 0,
                 currentWeight = if (format == WeightFormat.JV) WeightClass.JV else weight,
-                redClocks = ClockType.entries.associateWith { StopwatchState() },
-                greenClocks = ClockType.entries.associateWith { StopwatchState() }
+                redClocks = freshClocks, greenClocks = freshClocks,
+                redInjuryTimeouts = 0, greenInjuryTimeouts = 0,
+                redHncUsed = false, greenHncUsed = false,
+                redUndo = emptyMap(), greenUndo = emptyMap()
             )
         }
     }
 
     fun nextMatch() {
         _uiState.update { state ->
-            val resetClocks = ClockType.entries.associateWith { StopwatchState() }
+            val base = state.copy(
+                redClocks = freshClocks, greenClocks = freshClocks,
+                redInjuryTimeouts = 0, greenInjuryTimeouts = 0,
+                redHncUsed = false, greenHncUsed = false,
+                redUndo = emptyMap(), greenUndo = emptyMap()
+            )
             if (state.currentWeight.isJv) {
-                state.copy(
-                    jvCount = state.jvCount + 1,
-                    redClocks = resetClocks,
-                    greenClocks = resetClocks
-                )
+                base.copy(jvCount = state.jvCount + 1)
             } else {
                 val nextIndex = state.matchIndex + 1
                 if (nextIndex >= state.matchOrder.size) {
-                    state.copy(
-                        matchIndex = nextIndex,
-                        currentWeight = WeightClass.JV,
-                        redClocks = resetClocks,
-                        greenClocks = resetClocks
-                    )
+                    base.copy(matchIndex = nextIndex, currentWeight = WeightClass.JV)
                 } else {
-                    state.copy(
-                        matchIndex = nextIndex,
-                        currentWeight = state.matchOrder[nextIndex],
-                        redClocks = resetClocks,
-                        greenClocks = resetClocks
-                    )
+                    base.copy(matchIndex = nextIndex, currentWeight = state.matchOrder[nextIndex])
                 }
             }
         }
     }
 
+    private fun getInjuryTimeouts(state: MatchUiState, color: ClockColor): Int =
+        if (color == ClockColor.RED) state.redInjuryTimeouts else state.greenInjuryTimeouts
+
+    private fun getHncUsed(state: MatchUiState, color: ClockColor): Boolean =
+        if (color == ClockColor.RED) state.redHncUsed else state.greenHncUsed
+
+    private fun setInjuryTimeouts(state: MatchUiState, color: ClockColor, value: Int): MatchUiState =
+        if (color == ClockColor.RED) state.copy(redInjuryTimeouts = value)
+        else state.copy(greenInjuryTimeouts = value)
+
+    private fun setHncUsed(state: MatchUiState, color: ClockColor, value: Boolean): MatchUiState =
+        if (color == ClockColor.RED) state.copy(redHncUsed = value)
+        else state.copy(greenHncUsed = value)
+
     fun toggleClock(color: ClockColor, type: ClockType) {
         val now = System.nanoTime()
         _uiState.update { state ->
             val clocks = if (color == ClockColor.RED) state.redClocks else state.greenClocks
+            val undos = if (color == ClockColor.RED) state.redUndo else state.greenUndo
             val current = clocks[type] ?: StopwatchState()
-            // Don't start a fully-expired timer; tap is a no-op (long-press to reset)
             if (!current.isRunning && current.elapsedMs >= type.durationMs) return@update state
-            val updated = if (current.isRunning) {
-                current.copy(
+
+            val snapshot = ClockUndoSnapshot(
+                clockState = current,
+                injuryTimeouts = getInjuryTimeouts(state, color),
+                hncUsed = getHncUsed(state, color)
+            )
+
+            if (current.isRunning) {
+                val updated = current.copy(
                     elapsedMs = current.elapsedMs + (now - current.startTimeNanos) / 1_000_000,
                     isRunning = false,
                     startTimeNanos = 0L
                 )
-            } else {
-                current.copy(
-                    isRunning = true,
-                    startTimeNanos = now
-                )
+                val newClocks = clocks + (type to updated)
+                val newUndos = undos + (type to snapshot)
+                return@update if (color == ClockColor.RED)
+                    state.copy(redClocks = newClocks, redUndo = newUndos)
+                else state.copy(greenClocks = newClocks, greenUndo = newUndos)
             }
-            val newClocks = clocks + (type to updated)
-            if (color == ClockColor.RED) state.copy(redClocks = newClocks)
-            else state.copy(greenClocks = newClocks)
+
+            // Starting clock — track injury timeouts
+            var s = state
+            val injuryTimeouts = getInjuryTimeouts(s, color)
+            if (type == ClockType.INJURY) {
+                s = setInjuryTimeouts(s, color, injuryTimeouts + 1)
+            } else if (type == ClockType.HNC && !getHncUsed(s, color)) {
+                s = setHncUsed(s, color, true)
+                s = setInjuryTimeouts(s, color, injuryTimeouts + 1)
+            }
+
+            val updated = current.copy(isRunning = true, startTimeNanos = now)
+            val newClocks = (if (color == ClockColor.RED) s.redClocks else s.greenClocks) + (type to updated)
+            val newUndos = undos + (type to snapshot)
+            if (color == ClockColor.RED) s.copy(redClocks = newClocks, redUndo = newUndos)
+            else s.copy(greenClocks = newClocks, greenUndo = newUndos)
+        }
+    }
+
+    fun undoClock(color: ClockColor, type: ClockType) {
+        _uiState.update { state ->
+            val undos = if (color == ClockColor.RED) state.redUndo else state.greenUndo
+            val snapshot = undos[type] ?: return@update state
+            val clocks = if (color == ClockColor.RED) state.redClocks else state.greenClocks
+            val newClocks = clocks + (type to snapshot.clockState)
+            val newUndos = undos - type
+            var s = setInjuryTimeouts(state, color, snapshot.injuryTimeouts)
+            s = setHncUsed(s, color, snapshot.hncUsed)
+            if (color == ClockColor.RED) s.copy(redClocks = newClocks, redUndo = newUndos)
+            else s.copy(greenClocks = newClocks, greenUndo = newUndos)
         }
     }
 
     fun resetClock(color: ClockColor, type: ClockType) {
         _uiState.update { state ->
             val clocks = if (color == ClockColor.RED) state.redClocks else state.greenClocks
+            val undos = if (color == ClockColor.RED) state.redUndo else state.greenUndo
             val newClocks = clocks + (type to StopwatchState())
-            if (color == ClockColor.RED) state.copy(redClocks = newClocks)
-            else state.copy(greenClocks = newClocks)
+            val newUndos = undos - type
+            if (color == ClockColor.RED) state.copy(redClocks = newClocks, redUndo = newUndos)
+            else state.copy(greenClocks = newClocks, greenUndo = newUndos)
         }
     }
 

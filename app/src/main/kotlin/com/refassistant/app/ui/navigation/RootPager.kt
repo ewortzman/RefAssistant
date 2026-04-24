@@ -36,7 +36,10 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                             color = ClockColor.RED,
                             clocks = state.redClocks,
                             tickNanos = tickNanos,
+                            injuryTimeouts = state.redInjuryTimeouts,
+                            hncUsed = state.redHncUsed,
                             onToggle = { viewModel.toggleClock(ClockColor.RED, it) },
+                            onDoubleTap = { viewModel.undoClock(ClockColor.RED, it) },
                             onReset = { viewModel.resetClock(ClockColor.RED, it) },
                             isAmbient = isAmbient
                         )
@@ -51,7 +54,10 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                             color = ClockColor.GREEN,
                             clocks = state.greenClocks,
                             tickNanos = tickNanos,
+                            injuryTimeouts = state.greenInjuryTimeouts,
+                            hncUsed = state.greenHncUsed,
                             onToggle = { viewModel.toggleClock(ClockColor.GREEN, it) },
+                            onDoubleTap = { viewModel.undoClock(ClockColor.GREEN, it) },
                             onReset = { viewModel.resetClock(ClockColor.GREEN, it) },
                             isAmbient = isAmbient
                         )

@@ -27,7 +27,10 @@ fun ClockScreen(
     color: ClockColor,
     clocks: Map<ClockType, StopwatchState>,
     tickNanos: Long,
+    injuryTimeouts: Int,
+    hncUsed: Boolean,
     onToggle: (ClockType) -> Unit,
+    onDoubleTap: (ClockType) -> Unit,
     onReset: (ClockType) -> Unit,
     isAmbient: Boolean = false
 ) {
@@ -46,6 +49,7 @@ fun ClockScreen(
             stopwatchState = clocks[ClockType.BLOOD] ?: StopwatchState(),
             tickNanos = tickNanos,
             onTap = { if (!isAmbient) onToggle(ClockType.BLOOD) },
+            onDoubleTap = { if (!isAmbient) onDoubleTap(ClockType.BLOOD) },
             onLongPress = { if (!isAmbient) confirmResetType = ClockType.BLOOD },
             isAmbient = isAmbient,
             modifier = Modifier
@@ -59,7 +63,9 @@ fun ClockScreen(
             stopwatchState = clocks[ClockType.INJURY] ?: StopwatchState(),
             tickNanos = tickNanos,
             onTap = { if (!isAmbient) onToggle(ClockType.INJURY) },
+            onDoubleTap = { if (!isAmbient) onDoubleTap(ClockType.INJURY) },
             onLongPress = { if (!isAmbient) confirmResetType = ClockType.INJURY },
+            injuryTimeouts = injuryTimeouts,
             isAmbient = isAmbient,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
@@ -72,6 +78,7 @@ fun ClockScreen(
             stopwatchState = clocks[ClockType.RECOVERY] ?: StopwatchState(),
             tickNanos = tickNanos,
             onTap = { if (!isAmbient) onToggle(ClockType.RECOVERY) },
+            onDoubleTap = { if (!isAmbient) onDoubleTap(ClockType.RECOVERY) },
             onLongPress = { if (!isAmbient) confirmResetType = ClockType.RECOVERY },
             isAmbient = isAmbient,
             modifier = Modifier
@@ -85,7 +92,9 @@ fun ClockScreen(
             stopwatchState = clocks[ClockType.HNC] ?: StopwatchState(),
             tickNanos = tickNanos,
             onTap = { if (!isAmbient) onToggle(ClockType.HNC) },
+            onDoubleTap = { if (!isAmbient) onDoubleTap(ClockType.HNC) },
             onLongPress = { if (!isAmbient) confirmResetType = ClockType.HNC },
+            hncUsed = hncUsed,
             isAmbient = isAmbient,
             modifier = Modifier
                 .align(Alignment.CenterStart)
