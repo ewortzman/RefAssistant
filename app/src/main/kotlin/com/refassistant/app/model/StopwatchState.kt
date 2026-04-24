@@ -12,4 +12,8 @@ data class StopwatchState(
             elapsedMs
         }
     }
+
+    fun remainingMs(durationMs: Long, currentNanos: Long): Long {
+        return maxOf(0L, durationMs - displayElapsedMs(currentNanos))
+    }
 }

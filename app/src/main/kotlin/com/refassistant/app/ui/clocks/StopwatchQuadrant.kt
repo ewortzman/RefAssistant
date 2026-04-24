@@ -29,13 +29,15 @@ fun StopwatchQuadrant(
     isAmbient: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val displayMs = stopwatchState.displayElapsedMs(tickNanos)
+    val remainingMs = stopwatchState.remainingMs(clockType.durationMs, tickNanos)
+    val expired = remainingMs == 0L && stopwatchState.elapsedMs > 0L
     val timeColor = if (isAmbient) {
-        if (displayMs > 0) Color.White else Color.DarkGray
+        if (stopwatchState.elapsedMs > 0L || stopwatchState.isRunning) Color.White else Color.DarkGray
     } else {
         when {
+            expired -> Color.Red
             stopwatchState.isRunning -> Color.Yellow
-            displayMs > 0 -> Color(0xFFFFAB40)
+            stopwatchState.elapsedMs > 0L -> Color(0xFFFFAB40)
             else -> Color.White
         }
     }
@@ -56,7 +58,7 @@ fun StopwatchQuadrant(
             modifier = Modifier.size(20.dp)
         )
         Text(
-            text = formatElapsedTime(displayMs),
+            text = formatElapsedTime(remainingMs),
             style = MaterialTheme.typography.body2,
             color = timeColor
         )

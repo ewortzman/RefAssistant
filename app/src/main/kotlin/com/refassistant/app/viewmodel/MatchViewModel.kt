@@ -38,9 +38,32 @@ class MatchViewModel : ViewModel() {
             while (true) {
                 delay(32)
                 if (anyClockRunning()) {
-                    _tickNanos.value = System.nanoTime()
+                    val now = System.nanoTime()
+                    _tickNanos.value = now
+                    autoStopExpired(now)
                 }
             }
+        }
+    }
+
+    private fun autoStopExpired(now: Long) {
+        _uiState.update { state ->
+            var changed = false
+            fun stopIfExpired(clocks: Map<ClockType, StopwatchState>): Map<ClockType, StopwatchState> {
+                return clocks.mapValues { (type, sw) ->
+                    if (sw.isRunning && sw.remainingMs(type.durationMs, now) == 0L) {
+                        changed = true
+                        sw.copy(
+                            elapsedMs = type.durationMs,
+                            isRunning = false,
+                            startTimeNanos = 0L
+                        )
+                    } else sw
+                }
+            }
+            val newRed = stopIfExpired(state.redClocks)
+            val newGreen = stopIfExpired(state.greenClocks)
+            if (changed) state.copy(redClocks = newRed, greenClocks = newGreen) else state
         }
     }
 
@@ -100,6 +123,8 @@ class MatchViewModel : ViewModel() {
         _uiState.update { state ->
             val clocks = if (color == ClockColor.RED) state.redClocks else state.greenClocks
             val current = clocks[type] ?: StopwatchState()
+            // Don't start a fully-expired timer; tap is a no-op (long-press to reset)
+            if (!current.isRunning && current.elapsedMs >= type.durationMs) return@update state
             val updated = if (current.isRunning) {
                 current.copy(
                     elapsedMs = current.elapsedMs + (now - current.startTimeNanos) / 1_000_000,
