@@ -1,13 +1,20 @@
 package com.refassistant.app.ui.main
 
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.text.style.TextAlign
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
@@ -18,6 +25,7 @@ import androidx.wear.compose.material.items
 import androidx.wear.compose.material.rememberScalingLazyListState
 import com.refassistant.app.model.WeightClass
 import com.refassistant.app.model.WeightFormat
+import kotlinx.coroutines.launch
 
 @Composable
 fun WeightClassPicker(
@@ -47,15 +55,29 @@ fun WeightClassPicker(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun FormatPicker(
     currentFormat: WeightFormat,
     onSelectFormat: (WeightFormat) -> Unit
 ) {
     val listState = rememberScalingLazyListState()
+    val focusRequester = remember { FocusRequester() }
+    val scope = rememberScope()
+
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     ScalingLazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .onRotaryScrollEvent { event ->
+                scope.launch {
+                    listState.scrollBy(event.verticalScrollPixels)
+                }
+                true
+            }
+            .focusRequester(focusRequester)
+            .focusable(),
         state = listState
     ) {
         item {
@@ -86,6 +108,7 @@ private fun FormatPicker(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun WeightPicker(
     format: WeightFormat,
@@ -94,9 +117,22 @@ private fun WeightPicker(
 ) {
     val listState = rememberScalingLazyListState()
     val weights = remember(format) { WeightClass.listFor(format) }
+    val focusRequester = remember { FocusRequester() }
+    val scope = rememberScope()
+
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     ScalingLazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .onRotaryScrollEvent { event ->
+                scope.launch {
+                    listState.scrollBy(event.verticalScrollPixels)
+                }
+                true
+            }
+            .focusRequester(focusRequester)
+            .focusable(),
         state = listState
     ) {
         item {
@@ -131,3 +167,7 @@ private fun WeightPicker(
         }
     }
 }
+
+@Composable
+private fun rememberScope(): kotlinx.coroutines.CoroutineScope =
+    androidx.compose.runtime.rememberCoroutineScope()

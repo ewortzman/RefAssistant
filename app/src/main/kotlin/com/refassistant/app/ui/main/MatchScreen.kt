@@ -6,6 +6,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
+import com.refassistant.app.model.ChoiceParity
+import com.refassistant.app.model.ChoiceSide
 import com.refassistant.app.model.WeightClass
 import com.refassistant.app.model.WeightFormat
 
@@ -36,8 +39,14 @@ import com.refassistant.app.model.WeightFormat
 fun MatchScreen(
     currentWeight: WeightClass,
     currentFormat: WeightFormat,
+    boutNumber: Int,
+    totalBouts: Int,
+    choiceForBout: ChoiceSide,
+    choicePrompted: Boolean,
     onNextMatch: () -> Unit,
     onSetFormatAndWeight: (WeightFormat, WeightClass) -> Unit,
+    onSetChoice: (ChoiceSide, ChoiceParity) -> Unit,
+    onDismissChoicePrompt: () -> Unit,
     isAmbient: Boolean = false
 ) {
     var showPicker by remember { mutableStateOf(false) }
@@ -54,6 +63,14 @@ fun MatchScreen(
         return
     }
 
+    if (!isAmbient && !choicePrompted && !currentWeight.isJv) {
+        ChoicePrompt(
+            onSelect = onSetChoice,
+            onSkip = onDismissChoicePrompt
+        )
+        return
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -64,24 +81,48 @@ fun MatchScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            if (boutNumber > 0) {
+                Text(
+                    text = "Bout $boutNumber / $totalBouts",
+                    style = MaterialTheme.typography.caption2,
+                    color = if (isAmbient) Color.DarkGray else Color.Gray
+                )
+            }
+
             Text(
                 text = currentFormat.label,
                 style = MaterialTheme.typography.caption1,
                 color = if (isAmbient) Color.DarkGray else Color.Gray
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
-            Text(
-                text = currentWeight.label,
-                style = MaterialTheme.typography.display1,
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                modifier = if (isAmbient) Modifier else Modifier.combinedClickable(
-                    onClick = {},
-                    onLongClick = { showPicker = true }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ChoiceArrow(
+                    side = ChoiceSide.RED,
+                    active = choiceForBout == ChoiceSide.RED,
+                    leftSlot = true,
+                    isAmbient = isAmbient
                 )
-            )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = currentWeight.label,
+                    style = MaterialTheme.typography.display1,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = if (isAmbient) Modifier else Modifier.combinedClickable(
+                        onClick = {},
+                        onLongClick = { showPicker = true }
+                    )
+                )
+                Spacer(Modifier.width(4.dp))
+                ChoiceArrow(
+                    side = ChoiceSide.GREEN,
+                    active = choiceForBout == ChoiceSide.GREEN,
+                    leftSlot = false,
+                    isAmbient = isAmbient
+                )
+            }
 
             if (!isAmbient) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -135,4 +176,20 @@ fun MatchScreen(
             )
         }
     }
+}
+
+@Composable
+private fun ChoiceArrow(side: ChoiceSide, active: Boolean, leftSlot: Boolean, isAmbient: Boolean) {
+    val color = when {
+        !active -> Color.Transparent
+        isAmbient -> Color.White
+        side == ChoiceSide.RED -> Color(0xFFFF5252)
+        else -> Color(0xFF69F0AE)
+    }
+    // Arrow points AWAY from the weight text toward its side, so left slot (red) points left
+    Text(
+        text = if (leftSlot) "◀" else "▶",
+        style = MaterialTheme.typography.body1,
+        color = color
+    )
 }

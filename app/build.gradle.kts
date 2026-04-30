@@ -64,5 +64,8 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("com.google.android.horologist:horologist-compose-layout:0.6.20")
 
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.wear.compose:compose-navigation:1.3.1")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

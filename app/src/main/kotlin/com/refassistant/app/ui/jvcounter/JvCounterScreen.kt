@@ -35,6 +35,7 @@ fun JvCounterScreen(
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
     onReset: () -> Unit,
+    confirmReset: Boolean = true,
     isAmbient: Boolean = false
 ) {
     var showConfirm by remember { mutableStateOf(false) }
@@ -64,7 +65,10 @@ fun JvCounterScreen(
                 textAlign = TextAlign.Center,
                 modifier = if (isAmbient) Modifier else Modifier.combinedClickable(
                     onClick = {},
-                    onLongClick = { showConfirm = true }
+                    onLongClick = {
+                        if (confirmReset) showConfirm = true
+                        else onReset()
+                    }
                 )
             )
 

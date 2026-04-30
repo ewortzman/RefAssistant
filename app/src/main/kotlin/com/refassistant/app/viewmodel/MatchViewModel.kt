@@ -1,15 +1,38 @@
 package com.refassistant.app.viewmodel
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.refassistant.app.data.MatchStateRepository
+import com.refassistant.app.data.SettingsRepository
+import com.refassistant.app.model.AppSettings
+import com.refassistant.app.model.ChoiceParity
+import com.refassistant.app.model.ChoiceSide
 import com.refassistant.app.model.ClockType
 import com.refassistant.app.model.StopwatchState
 import com.refassistant.app.model.WeightClass
 import com.refassistant.app.model.WeightFormat
+import com.refassistant.app.model.choiceForBout
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -20,6 +43,12 @@ data class ClockUndoSnapshot(
     val injuryTimeouts: Int,
     val hncUsed: Boolean
 )
+
+sealed class ClockEffect {
+    object Expired : ClockEffect()
+    object Defaulted : ClockEffect()
+    data class Undone(val color: ClockColor, val type: ClockType) : ClockEffect()
+}
 
 data class MatchUiState(
     val weightFormat: WeightFormat = WeightFormat.COED_14,
@@ -34,10 +63,29 @@ data class MatchUiState(
     val greenHncUsed: Boolean = false,
     val redUndo: Map<ClockType, ClockUndoSnapshot> = emptyMap(),
     val greenUndo: Map<ClockType, ClockUndoSnapshot> = emptyMap(),
-    val jvCount: Int = 0
-)
+    val jvCount: Int = 0,
+    val choiceWinner: ChoiceSide = ChoiceSide.NONE,
+    val choiceWinnerTook: ChoiceParity = ChoiceParity.ODD,
+    val choicePrompted: Boolean = false
+) {
+    /** Bout number (1-indexed). 0 if JV mode. */
+    val boutNumber: Int
+        get() = if (currentWeight.isJv) 0 else matchIndex + 1
 
-class MatchViewModel : ViewModel() {
+    val totalBouts: Int
+        get() = matchOrder.size
+
+    val choiceForCurrentBout: ChoiceSide
+        get() = if (boutNumber == 0) ChoiceSide.NONE
+            else choiceForBout(choiceWinner, choiceWinnerTook, boutNumber)
+}
+
+@OptIn(FlowPreview::class)
+class MatchViewModel(
+    application: Application,
+    private val settingsRepo: SettingsRepository,
+    private val stateRepo: MatchStateRepository
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(MatchUiState())
     val uiState: StateFlow<MatchUiState> = _uiState.asStateFlow()
@@ -45,28 +93,74 @@ class MatchViewModel : ViewModel() {
     private val _tickNanos = MutableStateFlow(System.nanoTime())
     val tickNanos: StateFlow<Long> = _tickNanos.asStateFlow()
 
+    val settings: StateFlow<AppSettings> = settingsRepo.settings
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
+
+    private val _effects = MutableSharedFlow<ClockEffect>(extraBufferCapacity = 16)
+    val effects: SharedFlow<ClockEffect> = _effects.asSharedFlow()
+
+    private val _initialized = MutableStateFlow(false)
+    val initialized: StateFlow<Boolean> = _initialized.asStateFlow()
+
+    private var startingWeight: String = "106"
+
     init {
         viewModelScope.launch {
+            val restored = stateRepo.loadOnce()
+            if (restored != null) {
+                _uiState.value = restored
+                startingWeight = restored.matchOrder.firstOrNull()?.label ?: "106"
+            }
+            _initialized.value = true
+        }
+
+        // Tick loop: only runs when at least one clock is running, and checks every 100ms
+        viewModelScope.launch {
             while (true) {
-                delay(32)
                 if (anyClockRunning()) {
                     val now = System.nanoTime()
                     _tickNanos.value = now
                     autoStopExpired(now)
+                    delay(100)
+                } else {
+                    // Wait for state change that makes any clock run
+                    _uiState.first { state ->
+                        state.redClocks.values.any { it.isRunning } ||
+                            state.greenClocks.values.any { it.isRunning }
+                    }
                 }
             }
         }
+
+        // Persist state changes, debounced
+        viewModelScope.launch {
+            _uiState
+                .drop(1)
+                .debounce(300)
+                .onEach { stateRepo.save(it, startingWeight) }
+                .distinctUntilChanged()
+                .collect {}
+        }
+    }
+
+    private fun anyClockRunning(): Boolean {
+        val state = _uiState.value
+        return state.redClocks.values.any { it.isRunning } ||
+            state.greenClocks.values.any { it.isRunning }
     }
 
     private fun autoStopExpired(now: Long) {
+        var fired = false
         _uiState.update { state ->
             var changed = false
             fun stopIfExpired(clocks: Map<ClockType, StopwatchState>): Map<ClockType, StopwatchState> {
                 return clocks.mapValues { (type, sw) ->
-                    if (sw.isRunning && sw.remainingMs(type.durationMs, now) == 0L) {
+                    val duration = settings.value.durationFor(type)
+                    if (sw.isRunning && sw.remainingMs(duration, now) == 0L) {
                         changed = true
+                        fired = true
                         sw.copy(
-                            elapsedMs = type.durationMs,
+                            elapsedMs = duration,
                             isRunning = false,
                             startTimeNanos = 0L
                         )
@@ -77,12 +171,7 @@ class MatchViewModel : ViewModel() {
             val newGreen = stopIfExpired(state.greenClocks)
             if (changed) state.copy(redClocks = newRed, greenClocks = newGreen) else state
         }
-    }
-
-    private fun anyClockRunning(): Boolean {
-        val state = _uiState.value
-        return state.redClocks.values.any { it.isRunning } ||
-                state.greenClocks.values.any { it.isRunning }
+        if (fired) viewModelScope.launch { _effects.emit(ClockEffect.Expired) }
     }
 
     private val freshClocks get() = ClockType.entries.associateWith { StopwatchState() }
@@ -90,6 +179,7 @@ class MatchViewModel : ViewModel() {
     fun setFormatAndWeight(format: WeightFormat, weight: WeightClass) {
         val matchOrder = if (format == WeightFormat.JV) emptyList()
             else WeightClass.buildMatchOrder(format, weight)
+        startingWeight = if (format == WeightFormat.JV) "106" else weight.label
         _uiState.update {
             it.copy(
                 weightFormat = format,
@@ -99,9 +189,22 @@ class MatchViewModel : ViewModel() {
                 redClocks = freshClocks, greenClocks = freshClocks,
                 redInjuryTimeouts = 0, greenInjuryTimeouts = 0,
                 redHncUsed = false, greenHncUsed = false,
-                redUndo = emptyMap(), greenUndo = emptyMap()
+                redUndo = emptyMap(), greenUndo = emptyMap(),
+                choiceWinner = ChoiceSide.NONE,
+                choiceWinnerTook = ChoiceParity.ODD,
+                choicePrompted = false
             )
         }
+    }
+
+    fun setChoice(winner: ChoiceSide, took: ChoiceParity) {
+        _uiState.update {
+            it.copy(choiceWinner = winner, choiceWinnerTook = took, choicePrompted = true)
+        }
+    }
+
+    fun dismissChoicePrompt() {
+        _uiState.update { it.copy(choicePrompted = true) }
     }
 
     fun nextMatch() {
@@ -141,11 +244,13 @@ class MatchViewModel : ViewModel() {
 
     fun toggleClock(color: ClockColor, type: ClockType) {
         val now = System.nanoTime()
+        var defTriggered = false
         _uiState.update { state ->
             val clocks = if (color == ClockColor.RED) state.redClocks else state.greenClocks
             val undos = if (color == ClockColor.RED) state.redUndo else state.greenUndo
             val current = clocks[type] ?: StopwatchState()
-            if (!current.isRunning && current.elapsedMs >= type.durationMs) return@update state
+            val duration = settings.value.durationFor(type)
+            if (!current.isRunning && current.elapsedMs >= duration) return@update state
 
             val snapshot = ClockUndoSnapshot(
                 clockState = current,
@@ -166,14 +271,17 @@ class MatchViewModel : ViewModel() {
                 else state.copy(greenClocks = newClocks, greenUndo = newUndos)
             }
 
-            // Starting clock — track injury timeouts
             var s = state
-            val injuryTimeouts = getInjuryTimeouts(s, color)
+            val injuryBefore = getInjuryTimeouts(s, color)
             if (type == ClockType.INJURY) {
-                s = setInjuryTimeouts(s, color, injuryTimeouts + 1)
+                val newCount = injuryBefore + 1
+                s = setInjuryTimeouts(s, color, newCount)
+                if (injuryBefore < 3 && newCount == 3) defTriggered = true
             } else if (type == ClockType.HNC && !getHncUsed(s, color)) {
                 s = setHncUsed(s, color, true)
-                s = setInjuryTimeouts(s, color, injuryTimeouts + 1)
+                val newCount = injuryBefore + 1
+                s = setInjuryTimeouts(s, color, newCount)
+                if (injuryBefore < 3 && newCount == 3) defTriggered = true
             }
 
             val updated = current.copy(isRunning = true, startTimeNanos = now)
@@ -182,12 +290,15 @@ class MatchViewModel : ViewModel() {
             if (color == ClockColor.RED) s.copy(redClocks = newClocks, redUndo = newUndos)
             else s.copy(greenClocks = newClocks, greenUndo = newUndos)
         }
+        if (defTriggered) viewModelScope.launch { _effects.emit(ClockEffect.Defaulted) }
     }
 
     fun undoClock(color: ClockColor, type: ClockType) {
+        var didUndo = false
         _uiState.update { state ->
             val undos = if (color == ClockColor.RED) state.redUndo else state.greenUndo
             val snapshot = undos[type] ?: return@update state
+            didUndo = true
             val clocks = if (color == ClockColor.RED) state.redClocks else state.greenClocks
             val newClocks = clocks + (type to snapshot.clockState)
             val newUndos = undos - type
@@ -196,6 +307,7 @@ class MatchViewModel : ViewModel() {
             if (color == ClockColor.RED) s.copy(redClocks = newClocks, redUndo = newUndos)
             else s.copy(greenClocks = newClocks, greenUndo = newUndos)
         }
+        if (didUndo) viewModelScope.launch { _effects.emit(ClockEffect.Undone(color, type)) }
     }
 
     fun resetClock(color: ClockColor, type: ClockType) {
@@ -219,5 +331,29 @@ class MatchViewModel : ViewModel() {
 
     fun resetJv() {
         _uiState.update { it.copy(jvCount = 0) }
+    }
+
+    fun setHapticsEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsRepo.setHaptics(enabled) }
+    }
+
+    fun setConfirmResetEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsRepo.setConfirmReset(enabled) }
+    }
+
+    fun setClockDuration(type: ClockType, ms: Long) {
+        viewModelScope.launch { settingsRepo.setDuration(type, ms) }
+    }
+
+    companion object {
+        fun factory(application: Application): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                MatchViewModel(
+                    application = application,
+                    settingsRepo = SettingsRepository(application),
+                    stateRepo = MatchStateRepository(application)
+                )
+            }
+        }
     }
 }
