@@ -1,5 +1,6 @@
 package com.refassistant.app.ui.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
@@ -9,15 +10,22 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.wear.compose.material.SwipeToDismissBox
+import androidx.wear.compose.material.SwipeToDismissValue
+import androidx.wear.compose.material.rememberSwipeToDismissBoxState
 import com.refassistant.app.model.ClockType
 import com.refassistant.app.ui.clocks.ClockScreen
 import com.refassistant.app.ui.jvcounter.JvCounterScreen
 import com.refassistant.app.ui.main.MatchScreen
+import com.refassistant.app.ui.settings.SettingsGateScreen
 import com.refassistant.app.ui.settings.SettingsScreen
 import com.refassistant.app.viewmodel.ClockColor
 import com.refassistant.app.viewmodel.ClockEffect
 import com.refassistant.app.viewmodel.MatchViewModel
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -38,11 +46,23 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
         }
     }
 
+    var settingsOpen by remember { mutableStateOf(false) }
     val verticalPagerState = rememberPagerState(initialPage = 0) { 3 }
+
+    // Close settings when pager moves away from the settings gate page
+    LaunchedEffect(verticalPagerState) {
+        snapshotCollectPage(verticalPagerState) { page ->
+            if (page != 2) settingsOpen = false
+        }
+    }
+
+    BackHandler(enabled = settingsOpen) {
+        settingsOpen = false
+    }
 
     VerticalPager(
         state = verticalPagerState,
-        userScrollEnabled = !isAmbient
+        userScrollEnabled = !isAmbient && !settingsOpen
     ) { row ->
         when (row) {
             0 -> {
@@ -72,6 +92,7 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                             totalBouts = state.totalBouts,
                             choiceForBout = state.choiceForCurrentBout,
                             choicePrompted = state.choicePrompted,
+                            availableFormats = settings.visibleFormats(),
                             onNextMatch = viewModel::nextMatch,
                             onSetFormatAndWeight = viewModel::setFormatAndWeight,
                             onSetChoice = viewModel::setChoice,
@@ -102,13 +123,42 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                 confirmReset = settings.confirmResetEnabled,
                 isAmbient = isAmbient
             )
-            2 -> SettingsScreen(
-                settings = settings,
-                onToggleHaptics = viewModel::setHapticsEnabled,
-                onToggleConfirm = viewModel::setConfirmResetEnabled,
-                onChangeDuration = viewModel::setClockDuration,
-                isAmbient = isAmbient
-            )
+            2 -> {
+                SettingsGateScreen(
+                    onOpen = { settingsOpen = true },
+                    isAmbient = isAmbient
+                )
+                if (settingsOpen && !isAmbient) {
+                    val dismissState = rememberSwipeToDismissBoxState()
+                    LaunchedEffect(dismissState.currentValue) {
+                        if (dismissState.currentValue == SwipeToDismissValue.Dismissed) {
+                            settingsOpen = false
+                            dismissState.snapTo(SwipeToDismissValue.Default)
+                        }
+                    }
+                    SwipeToDismissBox(state = dismissState) { isBackground ->
+                        if (!isBackground) {
+                            SettingsScreen(
+                                settings = settings,
+                                onToggleHaptics = viewModel::setHapticsEnabled,
+                                onToggleConfirm = viewModel::setConfirmResetEnabled,
+                                onChangeDuration = viewModel::setClockDuration,
+                                onToggleFormat = viewModel::setFormatEnabled,
+                                isAmbient = false
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+private suspend fun snapshotCollectPage(
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    onPage: (Int) -> Unit
+) {
+    androidx.compose.runtime.snapshotFlow { pagerState.currentPage }
+        .collectLatest { onPage(it) }
 }

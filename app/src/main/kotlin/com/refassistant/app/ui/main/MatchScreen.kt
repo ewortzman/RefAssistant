@@ -43,6 +43,7 @@ fun MatchScreen(
     totalBouts: Int,
     choiceForBout: ChoiceSide,
     choicePrompted: Boolean,
+    availableFormats: List<WeightFormat>,
     onNextMatch: () -> Unit,
     onSetFormatAndWeight: (WeightFormat, WeightClass) -> Unit,
     onSetChoice: (ChoiceSide, ChoiceParity) -> Unit,
@@ -54,6 +55,7 @@ fun MatchScreen(
     if (showPicker && !isAmbient) {
         WeightClassPicker(
             currentFormat = currentFormat,
+            availableFormats = availableFormats,
             onSelect = { format, weight ->
                 onSetFormatAndWeight(format, weight)
                 showPicker = false

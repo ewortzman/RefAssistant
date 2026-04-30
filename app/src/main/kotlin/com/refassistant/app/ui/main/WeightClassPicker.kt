@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun WeightClassPicker(
     currentFormat: WeightFormat,
+    availableFormats: List<WeightFormat>,
     onSelect: (WeightFormat, WeightClass) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -38,6 +39,7 @@ fun WeightClassPicker(
     if (selectedFormat == null) {
         FormatPicker(
             currentFormat = currentFormat,
+            formats = availableFormats,
             onSelectFormat = { format ->
                 if (format == WeightFormat.JV) {
                     onSelect(format, WeightClass.JV)
@@ -59,6 +61,7 @@ fun WeightClassPicker(
 @Composable
 private fun FormatPicker(
     currentFormat: WeightFormat,
+    formats: List<WeightFormat>,
     onSelectFormat: (WeightFormat) -> Unit
 ) {
     val listState = rememberScalingLazyListState()
@@ -88,7 +91,7 @@ private fun FormatPicker(
                 modifier = Modifier.fillMaxWidth()
             )
         }
-        items(WeightFormat.entries) { format ->
+        items(formats) { format ->
             val isCurrent = format == currentFormat
             Chip(
                 onClick = { onSelectFormat(format) },

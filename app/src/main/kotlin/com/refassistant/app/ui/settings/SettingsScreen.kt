@@ -34,6 +34,7 @@ import androidx.wear.compose.material.ToggleChipDefaults
 import androidx.wear.compose.material.rememberScalingLazyListState
 import com.refassistant.app.model.AppSettings
 import com.refassistant.app.model.ClockType
+import com.refassistant.app.model.WeightFormat
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -43,6 +44,7 @@ fun SettingsScreen(
     onToggleHaptics: (Boolean) -> Unit,
     onToggleConfirm: (Boolean) -> Unit,
     onChangeDuration: (ClockType, Long) -> Unit,
+    onToggleFormat: (WeightFormat, Boolean) -> Unit,
     isAmbient: Boolean = false
 ) {
     val listState = rememberScalingLazyListState()
@@ -111,6 +113,30 @@ fun SettingsScreen(
                     label = type.label,
                     currentMs = settings.durationFor(type),
                     onChange = { onChangeDuration(type, it) }
+                )
+            }
+        }
+        item {
+            Text(
+                text = "Weight formats",
+                style = MaterialTheme.typography.caption1,
+                color = Color.Gray,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp)
+            )
+        }
+        WeightFormat.entries.filter { it != WeightFormat.JV }.forEach { format ->
+            item {
+                val isEnabled = format in settings.enabledFormats
+                ToggleChip(
+                    checked = isEnabled,
+                    onCheckedChange = { onToggleFormat(format, it) },
+                    label = { Text(format.label, style = MaterialTheme.typography.body2) },
+                    toggleControl = {
+                        androidx.wear.compose.material.Switch(checked = isEnabled)
+                    },
+                    colors = ToggleChipDefaults.toggleChipColors(),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }

@@ -345,6 +345,12 @@ class MatchViewModel(
         viewModelScope.launch { settingsRepo.setDuration(type, ms) }
     }
 
+    fun setFormatEnabled(format: WeightFormat, enabled: Boolean) {
+        val current = settings.value.enabledFormats
+        val updated = if (enabled) current + format else current - format
+        viewModelScope.launch { settingsRepo.setEnabledFormats(updated) }
+    }
+
     companion object {
         fun factory(application: Application): ViewModelProvider.Factory = viewModelFactory {
             initializer {
