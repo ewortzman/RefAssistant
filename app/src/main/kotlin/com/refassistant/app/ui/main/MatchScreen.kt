@@ -35,6 +35,7 @@ import com.refassistant.app.model.ChoiceParity
 import com.refassistant.app.model.ChoiceSide
 import com.refassistant.app.model.WeightClass
 import com.refassistant.app.model.WeightFormat
+import com.refassistant.app.util.rememberBatteryPercent
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -80,10 +81,25 @@ fun MatchScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        val batteryPct = rememberBatteryPercent()
+        val batteryColor = when {
+            isAmbient -> Color.DarkGray
+            batteryPct <= 15 -> Color(0xFFFF5252)
+            batteryPct <= 30 -> Color(0xFFFFAB40)
+            else -> Color.Gray
+        }
         TimeText(
             timeTextStyle = TimeTextDefaults.timeTextStyle(
                 color = if (isAmbient) Color.DarkGray else Color.White
             )
+        )
+        Text(
+            text = "${batteryPct}%",
+            style = MaterialTheme.typography.caption3,
+            color = batteryColor,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 12.dp, top = 6.dp)
         )
 
         Column(
