@@ -31,6 +31,7 @@ import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.compose.material.TimeTextDefaults
+import com.refassistant.app.model.BoutOutcome
 import com.refassistant.app.model.ChoiceParity
 import com.refassistant.app.model.ChoiceSide
 import com.refassistant.app.model.WeightClass
@@ -47,13 +48,17 @@ fun MatchScreen(
     choiceForBout: ChoiceSide,
     choicePrompted: Boolean,
     availableFormats: List<WeightFormat>,
+    redTeamScore: Int,
+    greenTeamScore: Int,
     onNextMatch: () -> Unit,
+    onRecordBoutResult: (ChoiceSide, BoutOutcome) -> Unit,
     onSetFormatAndWeight: (WeightFormat, WeightClass) -> Unit,
     onSetChoice: (ChoiceSide, ChoiceParity) -> Unit,
     onDismissChoicePrompt: () -> Unit,
     isAmbient: Boolean = false
 ) {
     var showPicker by remember { mutableStateOf(false) }
+    var showOutcomePicker by remember { mutableStateOf(false) }
 
     if (showPicker && !isAmbient) {
         WeightClassPicker(
@@ -72,6 +77,20 @@ fun MatchScreen(
         ChoicePrompt(
             onSelect = onSetChoice,
             onSkip = onDismissChoicePrompt
+        )
+        return
+    }
+
+    if (showOutcomePicker && !isAmbient) {
+        BoutOutcomePicker(
+            onSelect = { winner, outcome ->
+                onRecordBoutResult(winner, outcome)
+                showOutcomePicker = false
+            },
+            onSkip = {
+                onNextMatch()
+                showOutcomePicker = false
+            }
         )
         return
     }
@@ -115,6 +134,26 @@ fun MatchScreen(
                 )
             }
 
+            if (!currentWeight.isExhibition) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "$redTeamScore",
+                        style = MaterialTheme.typography.caption1,
+                        color = if (isAmbient) Color.DarkGray else Color(0xFFFF8A80)
+                    )
+                    Text(
+                        text = "  -  ",
+                        style = MaterialTheme.typography.caption1,
+                        color = if (isAmbient) Color.DarkGray else Color.Gray
+                    )
+                    Text(
+                        text = "$greenTeamScore",
+                        style = MaterialTheme.typography.caption1,
+                        color = if (isAmbient) Color.DarkGray else Color(0xFF69F0AE)
+                    )
+                }
+            }
+
             Text(
                 text = currentFormat.label,
                 style = MaterialTheme.typography.caption1,
@@ -154,7 +193,10 @@ fun MatchScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = onNextMatch,
+                    onClick = {
+                        if (currentWeight.isExhibition) onNextMatch()
+                        else showOutcomePicker = true
+                    },
                     modifier = Modifier
                         .fillMaxWidth(0.65f)
                         .height(36.dp),

@@ -51,7 +51,9 @@ class MatchStateRepository(private val context: Context) {
             choiceWinnerTook = runCatching {
                 ChoiceParity.valueOf(prefs[stringPreferencesKey("choice_winner_took")] ?: "ODD")
             }.getOrDefault(ChoiceParity.ODD),
-            choicePrompted = prefs[booleanPreferencesKey("choice_prompted")] ?: false
+            choicePrompted = prefs[booleanPreferencesKey("choice_prompted")] ?: false,
+            redTeamScore = prefs[intPreferencesKey("red_team_score")] ?: 0,
+            greenTeamScore = prefs[intPreferencesKey("green_team_score")] ?: 0
         )
     }
 
@@ -79,6 +81,8 @@ class MatchStateRepository(private val context: Context) {
             prefs[stringPreferencesKey("choice_winner")] = state.choiceWinner.name
             prefs[stringPreferencesKey("choice_winner_took")] = state.choiceWinnerTook.name
             prefs[booleanPreferencesKey("choice_prompted")] = state.choicePrompted
+            prefs[intPreferencesKey("red_team_score")] = state.redTeamScore
+            prefs[intPreferencesKey("green_team_score")] = state.greenTeamScore
         }
     }
 

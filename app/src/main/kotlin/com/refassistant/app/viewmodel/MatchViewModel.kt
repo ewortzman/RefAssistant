@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.refassistant.app.data.MatchStateRepository
 import com.refassistant.app.data.SettingsRepository
 import com.refassistant.app.model.AppSettings
+import com.refassistant.app.model.BoutOutcome
 import com.refassistant.app.model.ChoiceParity
 import com.refassistant.app.model.ChoiceSide
 import com.refassistant.app.model.ClockType
@@ -66,7 +67,9 @@ data class MatchUiState(
     val exhCount: Int = 0,
     val choiceWinner: ChoiceSide = ChoiceSide.NONE,
     val choiceWinnerTook: ChoiceParity = ChoiceParity.ODD,
-    val choicePrompted: Boolean = false
+    val choicePrompted: Boolean = false,
+    val redTeamScore: Int = 0,
+    val greenTeamScore: Int = 0
 ) {
     /** Bout number (1-indexed). 0 if in Exhibition mode. */
     val boutNumber: Int
@@ -192,7 +195,9 @@ class MatchViewModel(
                 redUndo = emptyMap(), greenUndo = emptyMap(),
                 choiceWinner = ChoiceSide.NONE,
                 choiceWinnerTook = ChoiceParity.ODD,
-                choicePrompted = false
+                choicePrompted = false,
+                redTeamScore = 0,
+                greenTeamScore = 0
             )
         }
     }
@@ -208,22 +213,45 @@ class MatchViewModel(
     }
 
     fun nextMatch() {
+        _uiState.update { state -> advanceState(state) }
+    }
+
+    /**
+     * Record a dual-meet bout result with winner and outcome, then advance to next bout.
+     * No-op team scoring for Exhibition (matches user's admin-only scope).
+     */
+    fun recordBoutResult(winner: ChoiceSide, outcome: BoutOutcome) {
         _uiState.update { state ->
-            val base = state.copy(
-                redClocks = freshClocks, greenClocks = freshClocks,
-                redInjuryTimeouts = 0, greenInjuryTimeouts = 0,
-                redHncUsed = false, greenHncUsed = false,
-                redUndo = emptyMap(), greenUndo = emptyMap()
-            )
-            if (state.currentWeight.isExhibition) {
-                base.copy(exhCount = state.exhCount + 1)
+            val scored = if (state.currentWeight.isExhibition) state else applyBoutScore(state, winner, outcome)
+            advanceState(scored)
+        }
+    }
+
+    private fun applyBoutScore(state: MatchUiState, winner: ChoiceSide, outcome: BoutOutcome): MatchUiState {
+        if (winner == ChoiceSide.NONE || outcome == BoutOutcome.DOUBLE_FORFEIT) return state
+        val points = outcome.teamPoints
+        return when (winner) {
+            ChoiceSide.RED -> state.copy(redTeamScore = state.redTeamScore + points)
+            ChoiceSide.GREEN -> state.copy(greenTeamScore = state.greenTeamScore + points)
+            ChoiceSide.NONE -> state
+        }
+    }
+
+    private fun advanceState(state: MatchUiState): MatchUiState {
+        val base = state.copy(
+            redClocks = freshClocks, greenClocks = freshClocks,
+            redInjuryTimeouts = 0, greenInjuryTimeouts = 0,
+            redHncUsed = false, greenHncUsed = false,
+            redUndo = emptyMap(), greenUndo = emptyMap()
+        )
+        return if (state.currentWeight.isExhibition) {
+            base.copy(exhCount = state.exhCount + 1)
+        } else {
+            val nextIndex = state.matchIndex + 1
+            if (nextIndex >= state.matchOrder.size) {
+                base.copy(matchIndex = nextIndex, currentWeight = WeightClass.EXH)
             } else {
-                val nextIndex = state.matchIndex + 1
-                if (nextIndex >= state.matchOrder.size) {
-                    base.copy(matchIndex = nextIndex, currentWeight = WeightClass.EXH)
-                } else {
-                    base.copy(matchIndex = nextIndex, currentWeight = state.matchOrder[nextIndex])
-                }
+                base.copy(matchIndex = nextIndex, currentWeight = state.matchOrder[nextIndex])
             }
         }
     }
