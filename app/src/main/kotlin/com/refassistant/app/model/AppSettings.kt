@@ -24,18 +24,18 @@ data class AppSettings(
     }
 
     /**
-     * Returns formats visible in picker. JV always included.
-     * If user has toggled off every non-JV format, fall back to all enabled so picker stays usable.
+     * Returns formats visible in picker. Exhibition always included.
+     * If user has toggled off every non-Exhibition format, fall back to all enabled so picker stays usable.
      */
     fun visibleFormats(): List<WeightFormat> {
-        val nonJv = WeightFormat.entries.filter { it != WeightFormat.JV && it in enabledFormats }
-        val effective = if (nonJv.isEmpty()) WeightFormat.entries.filter { it != WeightFormat.JV } else nonJv
-        return effective + WeightFormat.JV
+        val regular = WeightFormat.entries.filter { it != WeightFormat.EXH && it in enabledFormats }
+        val effective = if (regular.isEmpty()) WeightFormat.entries.filter { it != WeightFormat.EXH } else regular
+        return effective + WeightFormat.EXH
     }
 
     companion object {
         val DEFAULT_ENABLED_FORMATS: Set<WeightFormat> = WeightFormat.entries
-            .filter { it != WeightFormat.JV }
+            .filter { it != WeightFormat.EXH }
             .toSet()
     }
 }

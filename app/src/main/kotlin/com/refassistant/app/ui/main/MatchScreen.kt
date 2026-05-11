@@ -67,7 +67,7 @@ fun MatchScreen(
         return
     }
 
-    if (!isAmbient && !choicePrompted && !currentWeight.isJv) {
+    if (!isAmbient && !choicePrompted && !currentWeight.isExhibition) {
         ChoicePrompt(
             onSelect = onSetChoice,
             onSkip = onDismissChoicePrompt

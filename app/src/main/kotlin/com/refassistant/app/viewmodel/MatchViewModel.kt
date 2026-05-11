@@ -63,14 +63,14 @@ data class MatchUiState(
     val greenHncUsed: Boolean = false,
     val redUndo: Map<ClockType, ClockUndoSnapshot> = emptyMap(),
     val greenUndo: Map<ClockType, ClockUndoSnapshot> = emptyMap(),
-    val jvCount: Int = 0,
+    val exhCount: Int = 0,
     val choiceWinner: ChoiceSide = ChoiceSide.NONE,
     val choiceWinnerTook: ChoiceParity = ChoiceParity.ODD,
     val choicePrompted: Boolean = false
 ) {
-    /** Bout number (1-indexed). 0 if JV mode. */
+    /** Bout number (1-indexed). 0 if in Exhibition mode. */
     val boutNumber: Int
-        get() = if (currentWeight.isJv) 0 else matchIndex + 1
+        get() = if (currentWeight.isExhibition) 0 else matchIndex + 1
 
     val totalBouts: Int
         get() = matchOrder.size
@@ -177,15 +177,15 @@ class MatchViewModel(
     private val freshClocks get() = ClockType.entries.associateWith { StopwatchState() }
 
     fun setFormatAndWeight(format: WeightFormat, weight: WeightClass) {
-        val matchOrder = if (format == WeightFormat.JV) emptyList()
+        val matchOrder = if (format == WeightFormat.EXH) emptyList()
             else WeightClass.buildMatchOrder(format, weight)
-        startingWeight = if (format == WeightFormat.JV) "106" else weight.label
+        startingWeight = if (format == WeightFormat.EXH) "106" else weight.label
         _uiState.update {
             it.copy(
                 weightFormat = format,
                 matchOrder = matchOrder,
                 matchIndex = 0,
-                currentWeight = if (format == WeightFormat.JV) WeightClass.JV else weight,
+                currentWeight = if (format == WeightFormat.EXH) WeightClass.EXH else weight,
                 redClocks = freshClocks, greenClocks = freshClocks,
                 redInjuryTimeouts = 0, greenInjuryTimeouts = 0,
                 redHncUsed = false, greenHncUsed = false,
@@ -215,12 +215,12 @@ class MatchViewModel(
                 redHncUsed = false, greenHncUsed = false,
                 redUndo = emptyMap(), greenUndo = emptyMap()
             )
-            if (state.currentWeight.isJv) {
-                base.copy(jvCount = state.jvCount + 1)
+            if (state.currentWeight.isExhibition) {
+                base.copy(exhCount = state.exhCount + 1)
             } else {
                 val nextIndex = state.matchIndex + 1
                 if (nextIndex >= state.matchOrder.size) {
-                    base.copy(matchIndex = nextIndex, currentWeight = WeightClass.JV)
+                    base.copy(matchIndex = nextIndex, currentWeight = WeightClass.EXH)
                 } else {
                     base.copy(matchIndex = nextIndex, currentWeight = state.matchOrder[nextIndex])
                 }
@@ -321,16 +321,16 @@ class MatchViewModel(
         }
     }
 
-    fun incrementJv() {
-        _uiState.update { it.copy(jvCount = it.jvCount + 1) }
+    fun incrementExh() {
+        _uiState.update { it.copy(exhCount = it.exhCount + 1) }
     }
 
-    fun decrementJv() {
-        _uiState.update { it.copy(jvCount = maxOf(0, it.jvCount - 1)) }
+    fun decrementExh() {
+        _uiState.update { it.copy(exhCount = maxOf(0, it.exhCount - 1)) }
     }
 
-    fun resetJv() {
-        _uiState.update { it.copy(jvCount = 0) }
+    fun resetExh() {
+        _uiState.update { it.copy(exhCount = 0) }
     }
 
     fun setHapticsEnabled(enabled: Boolean) {

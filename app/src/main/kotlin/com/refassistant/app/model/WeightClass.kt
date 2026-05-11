@@ -7,14 +7,15 @@ enum class WeightFormat(val label: String, val weights: List<Int>) {
     GIRLS_14("Girls 14", listOf(100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 155, 170, 190, 235)),
     GIRLS_13("Girls 13", listOf(100, 106, 112, 118, 124, 130, 136, 142, 148, 155, 170, 190, 235)),
     GIRLS_12("Girls 12", listOf(100, 107, 114, 120, 126, 132, 138, 145, 152, 165, 185, 235)),
-    JV("JV", emptyList());
+    EXH("Exhibition", emptyList());
 }
 
 data class WeightClass(val label: String) {
-    val isJv: Boolean get() = label == "JV"
+    val isExhibition: Boolean get() = label == EXH_LABEL
 
     companion object {
-        val JV = WeightClass("JV")
+        const val EXH_LABEL = "Exh"
+        val EXH = WeightClass(EXH_LABEL)
 
         fun listFor(format: WeightFormat): List<WeightClass> {
             return format.weights.map { WeightClass(it.toString()) }

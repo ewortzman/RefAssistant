@@ -41,8 +41,8 @@ fun WeightClassPicker(
             currentFormat = currentFormat,
             formats = availableFormats,
             onSelectFormat = { format ->
-                if (format == WeightFormat.JV) {
-                    onSelect(format, WeightClass.JV)
+                if (format == WeightFormat.EXH) {
+                    onSelect(format, WeightClass.EXH)
                 } else {
                     selectedFormat = format
                 }

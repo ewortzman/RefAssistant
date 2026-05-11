@@ -18,7 +18,7 @@ import androidx.wear.compose.material.SwipeToDismissValue
 import androidx.wear.compose.material.rememberSwipeToDismissBoxState
 import com.refassistant.app.model.ClockType
 import com.refassistant.app.ui.clocks.ClockScreen
-import com.refassistant.app.ui.jvcounter.JvCounterScreen
+import com.refassistant.app.ui.exhcounter.ExhCounterScreen
 import com.refassistant.app.ui.main.MatchScreen
 import com.refassistant.app.ui.settings.SettingsGateScreen
 import com.refassistant.app.ui.settings.SettingsScreen
@@ -115,11 +115,11 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                     }
                 }
             }
-            1 -> JvCounterScreen(
-                jvCount = state.jvCount,
-                onIncrement = viewModel::incrementJv,
-                onDecrement = viewModel::decrementJv,
-                onReset = viewModel::resetJv,
+            1 -> ExhCounterScreen(
+                exhCount = state.exhCount,
+                onIncrement = viewModel::incrementExh,
+                onDecrement = viewModel::decrementExh,
+                onReset = viewModel::resetExh,
                 confirmReset = settings.confirmResetEnabled,
                 isAmbient = isAmbient
             )

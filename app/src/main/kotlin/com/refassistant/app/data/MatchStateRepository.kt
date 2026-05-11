@@ -29,9 +29,9 @@ class MatchStateRepository(private val context: Context) {
         val format = runCatching { WeightFormat.valueOf(formatName) }.getOrNull() ?: return@map null
         val weightLabel = prefs[CURRENT_WEIGHT] ?: return@map null
         val matchIndex = prefs[MATCH_INDEX] ?: 0
-        val matchOrder = if (format == WeightFormat.JV) emptyList()
+        val matchOrder = if (format == WeightFormat.EXH) emptyList()
             else WeightClass.buildMatchOrder(format, WeightClass(prefs[STARTING_WEIGHT] ?: "106"))
-        val currentWeight = if (weightLabel == "JV") WeightClass.JV else WeightClass(weightLabel)
+        val currentWeight = if (weightLabel == WeightClass.EXH_LABEL) WeightClass.EXH else WeightClass(weightLabel)
 
         MatchUiState(
             weightFormat = format,
@@ -44,7 +44,7 @@ class MatchStateRepository(private val context: Context) {
             greenInjuryTimeouts = prefs[intPreferencesKey("green_injury_timeouts")] ?: 0,
             redHncUsed = prefs[booleanPreferencesKey("red_hnc_used")] ?: false,
             greenHncUsed = prefs[booleanPreferencesKey("green_hnc_used")] ?: false,
-            jvCount = prefs[intPreferencesKey("jv_count")] ?: 0,
+            exhCount = prefs[intPreferencesKey("exh_count")] ?: 0,
             choiceWinner = runCatching {
                 ChoiceSide.valueOf(prefs[stringPreferencesKey("choice_winner")] ?: "NONE")
             }.getOrDefault(ChoiceSide.NONE),
@@ -75,7 +75,7 @@ class MatchStateRepository(private val context: Context) {
             prefs[intPreferencesKey("green_injury_timeouts")] = state.greenInjuryTimeouts
             prefs[booleanPreferencesKey("red_hnc_used")] = state.redHncUsed
             prefs[booleanPreferencesKey("green_hnc_used")] = state.greenHncUsed
-            prefs[intPreferencesKey("jv_count")] = state.jvCount
+            prefs[intPreferencesKey("exh_count")] = state.exhCount
             prefs[stringPreferencesKey("choice_winner")] = state.choiceWinner.name
             prefs[stringPreferencesKey("choice_winner_took")] = state.choiceWinnerTook.name
             prefs[booleanPreferencesKey("choice_prompted")] = state.choicePrompted

@@ -1,4 +1,4 @@
-package com.refassistant.app.ui.jvcounter
+package com.refassistant.app.ui.exhcounter
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -30,8 +30,8 @@ import com.refassistant.app.ui.common.ConfirmDialog
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun JvCounterScreen(
-    jvCount: Int,
+fun ExhCounterScreen(
+    exhCount: Int,
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
     onReset: () -> Unit,
@@ -51,7 +51,7 @@ fun JvCounterScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "JVs",
+                text = "Exhibitions",
                 style = MaterialTheme.typography.caption1,
                 color = if (isAmbient) Color.DarkGray else Color.Gray
             )
@@ -59,7 +59,7 @@ fun JvCounterScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "$jvCount",
+                text = "$exhCount",
                 style = MaterialTheme.typography.display1,
                 color = Color.White,
                 textAlign = TextAlign.Center,
@@ -102,7 +102,7 @@ fun JvCounterScreen(
 
         if (!isAmbient && showConfirm) {
             ConfirmDialog(
-                message = "Reset JV count?",
+                message = "Reset Exhibition count?",
                 onConfirm = {
                     onReset()
                     showConfirm = false

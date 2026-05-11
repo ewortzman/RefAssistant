@@ -125,7 +125,7 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp)
             )
         }
-        WeightFormat.entries.filter { it != WeightFormat.JV }.forEach { format ->
+        WeightFormat.entries.filter { it != WeightFormat.EXH }.forEach { format ->
             item {
                 val isEnabled = format in settings.enabledFormats
                 ToggleChip(
