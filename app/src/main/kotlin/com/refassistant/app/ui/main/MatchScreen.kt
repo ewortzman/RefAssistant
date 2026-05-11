@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
+import androidx.wear.compose.material.TimeText
+import androidx.wear.compose.material.TimeTextDefaults
 import com.refassistant.app.model.ChoiceParity
 import com.refassistant.app.model.ChoiceSide
 import com.refassistant.app.model.WeightClass
@@ -78,6 +80,12 @@ fun MatchScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        TimeText(
+            timeTextStyle = TimeTextDefaults.timeTextStyle(
+                color = if (isAmbient) Color.DarkGray else Color.White
+            )
+        )
+
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
