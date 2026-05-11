@@ -12,6 +12,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.refassistant.app.model.ChoiceParity
 import com.refassistant.app.model.ChoiceSide
 import com.refassistant.app.model.ClockType
+import com.refassistant.app.model.DualSummary
 import com.refassistant.app.model.StopwatchState
 import com.refassistant.app.model.WeightClass
 import com.refassistant.app.model.WeightFormat
@@ -53,8 +54,37 @@ class MatchStateRepository(private val context: Context) {
             }.getOrDefault(ChoiceParity.ODD),
             choicePrompted = prefs[booleanPreferencesKey("choice_prompted")] ?: false,
             redTeamScore = prefs[intPreferencesKey("red_team_score")] ?: 0,
-            greenTeamScore = prefs[intPreferencesKey("green_team_score")] ?: 0
+            greenTeamScore = prefs[intPreferencesKey("green_team_score")] ?: 0,
+            dualStartedAtEpochMs = prefs[longPreferencesKey("dual_started_at")] ?: 0L,
+            eventStartedAtEpochMs = prefs[longPreferencesKey("event_started_at")] ?: 0L,
+            eventHistory = decodeHistory(prefs[stringPreferencesKey("event_history")])
         )
+    }
+
+    private fun decodeHistory(raw: String?): List<DualSummary> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return raw.split("|").mapNotNull { line ->
+            val parts = line.split(",")
+            if (parts.size != 8) return@mapNotNull null
+            runCatching {
+                DualSummary(
+                    format = WeightFormat.valueOf(parts[0]),
+                    startingWeight = parts[1],
+                    boutsCompleted = parts[2].toInt(),
+                    totalBouts = parts[3].toInt(),
+                    redTeamScore = parts[4].toInt(),
+                    greenTeamScore = parts[5].toInt(),
+                    startedAtEpochMs = parts[6].toLong(),
+                    endedAtEpochMs = parts[7].toLong()
+                )
+            }.getOrNull()
+        }
+    }
+
+    private fun encodeHistory(history: List<DualSummary>): String {
+        return history.joinToString("|") { s ->
+            "${s.format.name},${s.startingWeight},${s.boutsCompleted},${s.totalBouts},${s.redTeamScore},${s.greenTeamScore},${s.startedAtEpochMs},${s.endedAtEpochMs}"
+        }
     }
 
     private fun readClocks(prefs: Preferences, prefix: String): Map<ClockType, StopwatchState> {
@@ -83,6 +113,9 @@ class MatchStateRepository(private val context: Context) {
             prefs[booleanPreferencesKey("choice_prompted")] = state.choicePrompted
             prefs[intPreferencesKey("red_team_score")] = state.redTeamScore
             prefs[intPreferencesKey("green_team_score")] = state.greenTeamScore
+            prefs[longPreferencesKey("dual_started_at")] = state.dualStartedAtEpochMs
+            prefs[longPreferencesKey("event_started_at")] = state.eventStartedAtEpochMs
+            prefs[stringPreferencesKey("event_history")] = encodeHistory(state.eventHistory)
         }
     }
 

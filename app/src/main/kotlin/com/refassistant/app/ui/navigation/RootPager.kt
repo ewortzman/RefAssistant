@@ -120,9 +120,13 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
             }
             1 -> ExhCounterScreen(
                 exhCount = state.exhCount,
+                dualsInEvent = state.eventHistory.size,
+                dualActive = !state.currentWeight.isExhibition && state.dualStartedAtEpochMs > 0L,
                 onIncrement = viewModel::incrementExh,
                 onDecrement = viewModel::decrementExh,
                 onReset = viewModel::resetExh,
+                onEndDual = viewModel::endDualAndRecord,
+                onNewEvent = viewModel::newEvent,
                 confirmReset = settings.confirmResetEnabled,
                 isAmbient = isAmbient
             )

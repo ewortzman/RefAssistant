@@ -14,6 +14,7 @@ import com.refassistant.app.model.BoutOutcome
 import com.refassistant.app.model.ChoiceParity
 import com.refassistant.app.model.ChoiceSide
 import com.refassistant.app.model.ClockType
+import com.refassistant.app.model.DualSummary
 import com.refassistant.app.model.StopwatchState
 import com.refassistant.app.model.WeightClass
 import com.refassistant.app.model.WeightFormat
@@ -69,7 +70,10 @@ data class MatchUiState(
     val choiceWinnerTook: ChoiceParity = ChoiceParity.ODD,
     val choicePrompted: Boolean = false,
     val redTeamScore: Int = 0,
-    val greenTeamScore: Int = 0
+    val greenTeamScore: Int = 0,
+    val dualStartedAtEpochMs: Long = 0L,
+    val eventHistory: List<DualSummary> = emptyList(),
+    val eventStartedAtEpochMs: Long = 0L
 ) {
     /** Bout number (1-indexed). 0 if in Exhibition mode. */
     val boutNumber: Int
@@ -183,6 +187,7 @@ class MatchViewModel(
         val matchOrder = if (format == WeightFormat.EXH) emptyList()
             else WeightClass.buildMatchOrder(format, weight)
         startingWeight = if (format == WeightFormat.EXH) "106" else weight.label
+        val now = System.currentTimeMillis()
         _uiState.update {
             it.copy(
                 weightFormat = format,
@@ -197,9 +202,57 @@ class MatchViewModel(
                 choiceWinnerTook = ChoiceParity.ODD,
                 choicePrompted = false,
                 redTeamScore = 0,
-                greenTeamScore = 0
+                greenTeamScore = 0,
+                dualStartedAtEpochMs = if (format == WeightFormat.EXH) it.dualStartedAtEpochMs else now,
+                eventStartedAtEpochMs = if (it.eventStartedAtEpochMs == 0L) now else it.eventStartedAtEpochMs
             )
         }
+    }
+
+    /**
+     * End the current dual: snapshot it into event history, then reset dual state
+     * to Exhibition mode (clocks/scores/choice cleared, exhCount preserved).
+     * No-op if currently in Exhibition mode or no dual has been started.
+     */
+    fun endDualAndRecord() {
+        val now = System.currentTimeMillis()
+        _uiState.update { state ->
+            val format = state.weightFormat
+            if (format == WeightFormat.EXH || state.dualStartedAtEpochMs == 0L) return@update state
+            val summary = DualSummary(
+                format = format,
+                startingWeight = state.matchOrder.firstOrNull()?.label ?: "?",
+                boutsCompleted = state.matchIndex.coerceAtMost(state.matchOrder.size),
+                totalBouts = state.matchOrder.size,
+                redTeamScore = state.redTeamScore,
+                greenTeamScore = state.greenTeamScore,
+                startedAtEpochMs = state.dualStartedAtEpochMs,
+                endedAtEpochMs = now
+            )
+            state.copy(
+                eventHistory = state.eventHistory + summary,
+                weightFormat = WeightFormat.EXH,
+                matchOrder = emptyList(),
+                matchIndex = 0,
+                currentWeight = WeightClass.EXH,
+                redClocks = freshClocks, greenClocks = freshClocks,
+                redInjuryTimeouts = 0, greenInjuryTimeouts = 0,
+                redHncUsed = false, greenHncUsed = false,
+                redUndo = emptyMap(), greenUndo = emptyMap(),
+                choiceWinner = ChoiceSide.NONE,
+                choiceWinnerTook = ChoiceParity.ODD,
+                choicePrompted = false,
+                redTeamScore = 0,
+                greenTeamScore = 0,
+                dualStartedAtEpochMs = 0L
+            )
+        }
+    }
+
+    /** Reset event: clears dual history, Exhibition count, and all dual state. */
+    fun newEvent() {
+        startingWeight = "106"
+        _uiState.value = MatchUiState()
     }
 
     fun setChoice(winner: ChoiceSide, took: ChoiceParity) {

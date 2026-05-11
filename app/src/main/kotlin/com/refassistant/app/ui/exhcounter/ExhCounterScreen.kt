@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,13 +34,19 @@ import com.refassistant.app.ui.common.ConfirmDialog
 @Composable
 fun ExhCounterScreen(
     exhCount: Int,
+    dualsInEvent: Int,
+    dualActive: Boolean,
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
     onReset: () -> Unit,
+    onEndDual: () -> Unit,
+    onNewEvent: () -> Unit,
     confirmReset: Boolean = true,
     isAmbient: Boolean = false
 ) {
     var showConfirm by remember { mutableStateOf(false) }
+    var showEndDualConfirm by remember { mutableStateOf(false) }
+    var showNewEventConfirm by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -51,16 +59,22 @@ fun ExhCounterScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
+                text = "Event — $dualsInEvent duals",
+                style = MaterialTheme.typography.caption2,
+                color = if (isAmbient) Color.DarkGray else Color.Gray
+            )
+
+            Spacer(Modifier.height(2.dp))
+
+            Text(
                 text = "Exhibitions",
                 style = MaterialTheme.typography.caption1,
                 color = if (isAmbient) Color.DarkGray else Color.Gray
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
             Text(
                 text = "$exhCount",
-                style = MaterialTheme.typography.display1,
+                style = MaterialTheme.typography.display2,
                 color = Color.White,
                 textAlign = TextAlign.Center,
                 modifier = if (isAmbient) Modifier else Modifier.combinedClickable(
@@ -73,28 +87,50 @@ fun ExhCounterScreen(
             )
 
             if (!isAmbient) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(Modifier.height(6.dp))
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Button(
                         onClick = onDecrement,
-                        modifier = Modifier.size(48.dp),
+                        modifier = Modifier.size(40.dp),
                         colors = ButtonDefaults.secondaryButtonColors(),
                         shape = CircleShape
                     ) {
-                        Text("−", style = MaterialTheme.typography.title1)
+                        Text("−", style = MaterialTheme.typography.title2)
                     }
-
                     Button(
                         onClick = onIncrement,
-                        modifier = Modifier.size(48.dp),
+                        modifier = Modifier.size(40.dp),
                         colors = ButtonDefaults.primaryButtonColors(),
                         shape = CircleShape
                     ) {
-                        Text("+", style = MaterialTheme.typography.title1)
+                        Text("+", style = MaterialTheme.typography.title2)
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (dualActive) {
+                        Button(
+                            onClick = { showEndDualConfirm = true },
+                            colors = ButtonDefaults.secondaryButtonColors(),
+                            modifier = Modifier.height(24.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("End Dual", style = MaterialTheme.typography.caption2)
+                        }
+                    }
+                    Button(
+                        onClick = { showNewEventConfirm = true },
+                        colors = ButtonDefaults.secondaryButtonColors(),
+                        modifier = Modifier.height(24.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("New Event", style = MaterialTheme.typography.caption2)
                     }
                 }
             }
@@ -108,6 +144,28 @@ fun ExhCounterScreen(
                     showConfirm = false
                 },
                 onDismiss = { showConfirm = false }
+            )
+        }
+
+        if (!isAmbient && showEndDualConfirm) {
+            ConfirmDialog(
+                message = "End this dual?",
+                onConfirm = {
+                    onEndDual()
+                    showEndDualConfirm = false
+                },
+                onDismiss = { showEndDualConfirm = false }
+            )
+        }
+
+        if (!isAmbient && showNewEventConfirm) {
+            ConfirmDialog(
+                message = "Start new event? All history cleared.",
+                onConfirm = {
+                    onNewEvent()
+                    showNewEventConfirm = false
+                },
+                onDismiss = { showNewEventConfirm = false }
             )
         }
     }
