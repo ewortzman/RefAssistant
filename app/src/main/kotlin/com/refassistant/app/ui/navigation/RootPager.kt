@@ -82,23 +82,29 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                             onReset = { viewModel.resetClock(ClockColor.RED, it) },
                             isAmbient = isAmbient
                         )
-                        1 -> MatchScreen(
-                            currentWeight = state.currentWeight,
-                            currentFormat = state.weightFormat,
-                            boutNumber = state.boutNumber,
-                            totalBouts = state.totalBouts,
-                            choiceForBout = state.choiceForCurrentBout,
-                            choicePrompted = state.choicePrompted,
-                            availableFormats = settings.visibleFormats(),
-                            redTeamScore = state.redTeamScore,
-                            greenTeamScore = state.greenTeamScore,
-                            onNextMatch = viewModel::nextMatch,
-                            onRecordBoutResult = viewModel::recordBoutResult,
-                            onSetFormatAndWeight = viewModel::setFormatAndWeight,
-                            onSetChoice = viewModel::setChoice,
-                            onDismissChoicePrompt = viewModel::dismissChoicePrompt,
-                            isAmbient = isAmbient
-                        )
+                        1 -> {
+                            val lastDual = state.eventHistory.lastOrNull()
+                            MatchScreen(
+                                currentWeight = state.currentWeight,
+                                currentFormat = state.weightFormat,
+                                boutNumber = state.boutNumber,
+                                totalBouts = state.totalBouts,
+                                choiceForBout = state.choiceForCurrentBout,
+                                choicePrompted = state.choicePrompted,
+                                availableFormats = settings.visibleFormats(),
+                                redTeamScore = state.redTeamScore,
+                                greenTeamScore = state.greenTeamScore,
+                                lastDualRedScore = lastDual?.redTeamScore,
+                                lastDualGreenScore = lastDual?.greenTeamScore,
+                                teamScoreTrackingEnabled = settings.teamScoreTrackingEnabled,
+                                onNextMatch = viewModel::nextMatch,
+                                onRecordBoutResult = viewModel::recordBoutResult,
+                                onSetFormatAndWeight = viewModel::setFormatAndWeight,
+                                onSetChoice = viewModel::setChoice,
+                                onDismissChoicePrompt = viewModel::dismissChoicePrompt,
+                                isAmbient = isAmbient
+                            )
+                        }
                         2 -> ClockScreen(
                             color = ClockColor.GREEN,
                             clocks = state.greenClocks,
@@ -133,6 +139,7 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                         settings = settings,
                         onToggleHaptics = viewModel::setHapticsEnabled,
                         onToggleConfirm = viewModel::setConfirmResetEnabled,
+                        onToggleTeamScore = viewModel::setTeamScoreTrackingEnabled,
                         onChangeDuration = viewModel::setClockDuration,
                         onToggleFormat = viewModel::setFormatEnabled,
                         isAmbient = false

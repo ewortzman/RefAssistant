@@ -43,6 +43,7 @@ fun SettingsScreen(
     settings: AppSettings,
     onToggleHaptics: (Boolean) -> Unit,
     onToggleConfirm: (Boolean) -> Unit,
+    onToggleTeamScore: (Boolean) -> Unit,
     onChangeDuration: (ClockType, Long) -> Unit,
     onToggleFormat: (WeightFormat, Boolean) -> Unit,
     isAmbient: Boolean = false
@@ -93,6 +94,18 @@ fun SettingsScreen(
                 label = { Text("Confirm reset", style = MaterialTheme.typography.body2) },
                 toggleControl = {
                     androidx.wear.compose.material.Switch(checked = settings.confirmResetEnabled)
+                },
+                colors = ToggleChipDefaults.toggleChipColors(),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        item {
+            ToggleChip(
+                checked = settings.teamScoreTrackingEnabled,
+                onCheckedChange = onToggleTeamScore,
+                label = { Text("Track team score", style = MaterialTheme.typography.body2) },
+                toggleControl = {
+                    androidx.wear.compose.material.Switch(checked = settings.teamScoreTrackingEnabled)
                 },
                 colors = ToggleChipDefaults.toggleChipColors(),
                 modifier = Modifier.fillMaxWidth()

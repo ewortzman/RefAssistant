@@ -72,17 +72,37 @@ fun BoutOutcomePicker(
                 )
             }
             item {
+                Button(
+                    onClick = { onSelect(ChoiceSide.NONE, BoutOutcome.DOUBLE_FORFEIT) },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF424242)),
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .height(28.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text(
+                        "No Contest",
+                        style = MaterialTheme.typography.caption1,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+            item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Red", style = MaterialTheme.typography.caption2, color = Color(0xFFFF8A80))
                     Text("Green", style = MaterialTheme.typography.caption2, color = Color(0xFF69F0AE))
                 }
             }
-            BoutOutcome.entries.forEach { outcome ->
-                item { OutcomeRow(outcome, onSelect) }
-            }
+            BoutOutcome.entries
+                .filter { it != BoutOutcome.DOUBLE_FORFEIT }
+                .forEach { outcome ->
+                    item { OutcomeRow(outcome, onSelect) }
+                }
             item {
                 Button(
                     onClick = onSkip,

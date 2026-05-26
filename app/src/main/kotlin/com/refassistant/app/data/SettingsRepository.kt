@@ -28,6 +28,7 @@ class SettingsRepository(private val context: Context) {
         AppSettings(
             hapticsEnabled = prefs[HAPTICS] ?: true,
             confirmResetEnabled = prefs[CONFIRM_RESET] ?: true,
+            teamScoreTrackingEnabled = prefs[TEAM_SCORE_TRACKING] ?: true,
             bloodDurationMs = prefs[BLOOD_MS] ?: ClockType.BLOOD.defaultDurationMs,
             injuryDurationMs = prefs[INJURY_MS] ?: ClockType.INJURY.defaultDurationMs,
             recoveryDurationMs = prefs[RECOVERY_MS] ?: ClockType.RECOVERY.defaultDurationMs,
@@ -42,6 +43,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setConfirmReset(enabled: Boolean) {
         context.settingsDataStore.edit { it[CONFIRM_RESET] = enabled }
+    }
+
+    suspend fun setTeamScoreTracking(enabled: Boolean) {
+        context.settingsDataStore.edit { it[TEAM_SCORE_TRACKING] = enabled }
     }
 
     suspend fun setDuration(type: ClockType, ms: Long) {
@@ -62,6 +67,7 @@ class SettingsRepository(private val context: Context) {
     companion object {
         private val HAPTICS = booleanPreferencesKey("haptics")
         private val CONFIRM_RESET = booleanPreferencesKey("confirm_reset")
+        private val TEAM_SCORE_TRACKING = booleanPreferencesKey("team_score_tracking")
         private val BLOOD_MS = longPreferencesKey("blood_ms")
         private val INJURY_MS = longPreferencesKey("injury_ms")
         private val RECOVERY_MS = longPreferencesKey("recovery_ms")

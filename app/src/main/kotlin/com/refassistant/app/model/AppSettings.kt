@@ -3,6 +3,7 @@ package com.refassistant.app.model
 data class AppSettings(
     val hapticsEnabled: Boolean = true,
     val confirmResetEnabled: Boolean = true,
+    val teamScoreTrackingEnabled: Boolean = true,
     val bloodDurationMs: Long = 300_000L,
     val injuryDurationMs: Long = 90_000L,
     val recoveryDurationMs: Long = 120_000L,

@@ -50,6 +50,9 @@ fun MatchScreen(
     availableFormats: List<WeightFormat>,
     redTeamScore: Int,
     greenTeamScore: Int,
+    lastDualRedScore: Int?,
+    lastDualGreenScore: Int?,
+    teamScoreTrackingEnabled: Boolean,
     onNextMatch: () -> Unit,
     onRecordBoutResult: (ChoiceSide, BoutOutcome) -> Unit,
     onSetFormatAndWeight: (WeightFormat, WeightClass) -> Unit,
@@ -134,7 +137,10 @@ fun MatchScreen(
                 )
             }
 
-            if (!currentWeight.isExhibition) {
+            val showLiveScore = teamScoreTrackingEnabled && !currentWeight.isExhibition
+            val showLastScore = teamScoreTrackingEnabled && currentWeight.isExhibition &&
+                lastDualRedScore != null && lastDualGreenScore != null
+            if (showLiveScore) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "$redTeamScore",
@@ -148,6 +154,29 @@ fun MatchScreen(
                     )
                     Text(
                         text = "$greenTeamScore",
+                        style = MaterialTheme.typography.caption1,
+                        color = if (isAmbient) Color.DarkGray else Color(0xFF69F0AE)
+                    )
+                }
+            } else if (showLastScore) {
+                Text(
+                    text = "Last dual",
+                    style = MaterialTheme.typography.caption3,
+                    color = if (isAmbient) Color.DarkGray else Color.Gray
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "$lastDualRedScore",
+                        style = MaterialTheme.typography.caption1,
+                        color = if (isAmbient) Color.DarkGray else Color(0xFFFF8A80)
+                    )
+                    Text(
+                        text = "  -  ",
+                        style = MaterialTheme.typography.caption1,
+                        color = if (isAmbient) Color.DarkGray else Color.Gray
+                    )
+                    Text(
+                        text = "$lastDualGreenScore",
                         style = MaterialTheme.typography.caption1,
                         color = if (isAmbient) Color.DarkGray else Color(0xFF69F0AE)
                     )
@@ -194,7 +223,7 @@ fun MatchScreen(
 
                 Button(
                     onClick = {
-                        if (currentWeight.isExhibition) onNextMatch()
+                        if (currentWeight.isExhibition || !teamScoreTrackingEnabled) onNextMatch()
                         else showOutcomePicker = true
                     },
                     modifier = Modifier

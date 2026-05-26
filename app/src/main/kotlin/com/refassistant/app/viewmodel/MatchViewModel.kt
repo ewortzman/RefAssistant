@@ -422,6 +422,10 @@ class MatchViewModel(
         viewModelScope.launch { settingsRepo.setConfirmReset(enabled) }
     }
 
+    fun setTeamScoreTrackingEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsRepo.setTeamScoreTracking(enabled) }
+    }
+
     fun setClockDuration(type: ClockType, ms: Long) {
         viewModelScope.launch { settingsRepo.setDuration(type, ms) }
     }
