@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +25,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
+import androidx.wear.compose.material.ChipDefaults
+import androidx.wear.compose.material.CompactChip
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.refassistant.app.ui.common.ConfirmDialog
@@ -113,25 +114,31 @@ fun ExhCounterScreen(
 
                 Spacer(Modifier.height(8.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (dualActive) {
-                        Button(
+                        CompactChip(
                             onClick = { showEndDualConfirm = true },
-                            colors = ButtonDefaults.secondaryButtonColors(),
-                            modifier = Modifier.height(24.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("End Dual", style = MaterialTheme.typography.caption2)
-                        }
+                            colors = ChipDefaults.secondaryChipColors(),
+                            label = {
+                                Text(
+                                    "End Dual",
+                                    style = MaterialTheme.typography.caption2,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        )
                     }
-                    Button(
+                    CompactChip(
                         onClick = { showNewEventConfirm = true },
-                        colors = ButtonDefaults.secondaryButtonColors(),
-                        modifier = Modifier.height(24.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("New Event", style = MaterialTheme.typography.caption2)
-                    }
+                        colors = ChipDefaults.secondaryChipColors(),
+                        label = {
+                            Text(
+                                "New Event",
+                                style = MaterialTheme.typography.caption2,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    )
                 }
             }
         }

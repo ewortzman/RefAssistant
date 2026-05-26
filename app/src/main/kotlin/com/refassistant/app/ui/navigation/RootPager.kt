@@ -13,9 +13,6 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.wear.compose.material.SwipeToDismissBox
-import androidx.wear.compose.material.SwipeToDismissValue
-import androidx.wear.compose.material.rememberSwipeToDismissBoxState
 import com.refassistant.app.model.ClockType
 import com.refassistant.app.ui.clocks.ClockScreen
 import com.refassistant.app.ui.exhcounter.ExhCounterScreen
@@ -131,30 +128,20 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                 isAmbient = isAmbient
             )
             2 -> {
-                SettingsGateScreen(
-                    onOpen = { settingsOpen = true },
-                    isAmbient = isAmbient
-                )
                 if (settingsOpen && !isAmbient) {
-                    val dismissState = rememberSwipeToDismissBoxState()
-                    LaunchedEffect(dismissState.currentValue) {
-                        if (dismissState.currentValue == SwipeToDismissValue.Dismissed) {
-                            settingsOpen = false
-                            dismissState.snapTo(SwipeToDismissValue.Default)
-                        }
-                    }
-                    SwipeToDismissBox(state = dismissState) { isBackground ->
-                        if (!isBackground) {
-                            SettingsScreen(
-                                settings = settings,
-                                onToggleHaptics = viewModel::setHapticsEnabled,
-                                onToggleConfirm = viewModel::setConfirmResetEnabled,
-                                onChangeDuration = viewModel::setClockDuration,
-                                onToggleFormat = viewModel::setFormatEnabled,
-                                isAmbient = false
-                            )
-                        }
-                    }
+                    SettingsScreen(
+                        settings = settings,
+                        onToggleHaptics = viewModel::setHapticsEnabled,
+                        onToggleConfirm = viewModel::setConfirmResetEnabled,
+                        onChangeDuration = viewModel::setClockDuration,
+                        onToggleFormat = viewModel::setFormatEnabled,
+                        isAmbient = false
+                    )
+                } else {
+                    SettingsGateScreen(
+                        onOpen = { settingsOpen = true },
+                        isAmbient = isAmbient
+                    )
                 }
             }
         }
