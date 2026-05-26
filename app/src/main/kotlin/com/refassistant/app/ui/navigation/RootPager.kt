@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.refassistant.app.model.ClockType
 import com.refassistant.app.ui.clocks.ClockScreen
+import com.refassistant.app.ui.exhcounter.EventSummaryScreen
 import com.refassistant.app.ui.exhcounter.ExhCounterScreen
 import com.refassistant.app.ui.main.MatchScreen
 import com.refassistant.app.ui.settings.SettingsGateScreen
@@ -44,22 +45,25 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
     }
 
     var settingsOpen by remember { mutableStateOf(false) }
+    var summaryOpen by remember { mutableStateOf(false) }
     val verticalPagerState = rememberPagerState(initialPage = 0) { 3 }
 
     // Close settings when pager moves away from the settings gate page
     LaunchedEffect(verticalPagerState) {
         snapshotCollectPage(verticalPagerState) { page ->
             if (page != 2) settingsOpen = false
+            if (page != 1) summaryOpen = false
         }
     }
 
-    BackHandler(enabled = settingsOpen) {
+    BackHandler(enabled = settingsOpen || summaryOpen) {
         settingsOpen = false
+        summaryOpen = false
     }
 
     VerticalPager(
         state = verticalPagerState,
-        userScrollEnabled = !isAmbient && !settingsOpen
+        userScrollEnabled = !isAmbient && !settingsOpen && !summaryOpen
     ) { row ->
         when (row) {
             0 -> {
@@ -123,18 +127,28 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                     }
                 }
             }
-            1 -> ExhCounterScreen(
-                exhCount = state.exhCount,
-                dualsInEvent = state.eventHistory.size,
-                dualActive = !state.currentWeight.isExhibition && state.dualStartedAtEpochMs > 0L,
-                onIncrement = viewModel::incrementExh,
-                onDecrement = viewModel::decrementExh,
-                onReset = viewModel::resetExh,
-                onEndDual = viewModel::endDualAndRecord,
-                onNewEvent = viewModel::newEvent,
-                confirmReset = settings.confirmResetEnabled,
-                isAmbient = isAmbient
-            )
+            1 -> {
+                if (summaryOpen && !isAmbient) {
+                    EventSummaryScreen(
+                        duals = state.eventHistory,
+                        onDismiss = { summaryOpen = false }
+                    )
+                } else {
+                    ExhCounterScreen(
+                        exhCount = state.exhCount,
+                        dualsInEvent = state.eventHistory.size,
+                        dualActive = !state.currentWeight.isExhibition && state.dualStartedAtEpochMs > 0L,
+                        onIncrement = viewModel::incrementExh,
+                        onDecrement = viewModel::decrementExh,
+                        onReset = viewModel::resetExh,
+                        onEndDual = viewModel::endDualAndRecord,
+                        onNewEvent = viewModel::newEvent,
+                        onOpenSummary = { summaryOpen = true },
+                        confirmReset = settings.confirmResetEnabled,
+                        isAmbient = isAmbient
+                    )
+                }
+            }
             2 -> {
                 if (settingsOpen && !isAmbient) {
                     SettingsScreen(

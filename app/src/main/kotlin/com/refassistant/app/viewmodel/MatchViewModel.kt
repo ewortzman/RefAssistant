@@ -49,6 +49,7 @@ data class ClockUndoSnapshot(
 sealed class ClockEffect {
     object Expired : ClockEffect()
     object Defaulted : ClockEffect()
+    object LastBoutReached : ClockEffect()
     data class Undone(val color: ClockColor, val type: ClockType) : ClockEffect()
 }
 
@@ -267,7 +268,13 @@ class MatchViewModel(
     }
 
     fun nextMatch() {
-        _uiState.update { state -> advanceState(state) }
+        var reachedLast = false
+        _uiState.update { state ->
+            val next = advanceState(state)
+            reachedLast = isLastBoutTransition(state, next)
+            next
+        }
+        if (reachedLast) viewModelScope.launch { _effects.emit(ClockEffect.LastBoutReached) }
     }
 
     /**
@@ -275,10 +282,21 @@ class MatchViewModel(
      * No-op team scoring for Exhibition (matches user's admin-only scope).
      */
     fun recordBoutResult(winner: ChoiceSide, outcome: BoutOutcome) {
+        var reachedLast = false
         _uiState.update { state ->
             val scored = if (state.currentWeight.isExhibition) state else applyBoutScore(state, winner, outcome)
-            advanceState(scored)
+            val next = advanceState(scored)
+            reachedLast = isLastBoutTransition(state, next)
+            next
         }
+        if (reachedLast) viewModelScope.launch { _effects.emit(ClockEffect.LastBoutReached) }
+    }
+
+    private fun isLastBoutTransition(prev: MatchUiState, next: MatchUiState): Boolean {
+        if (next.matchOrder.isEmpty()) return false
+        val prevIsLast = !prev.currentWeight.isExhibition && prev.matchIndex == prev.matchOrder.lastIndex
+        val nextIsLast = !next.currentWeight.isExhibition && next.matchIndex == next.matchOrder.lastIndex
+        return nextIsLast && !prevIsLast
     }
 
     private fun applyBoutScore(state: MatchUiState, winner: ChoiceSide, outcome: BoutOutcome): MatchUiState {

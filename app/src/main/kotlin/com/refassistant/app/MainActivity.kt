@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
                         when (effect) {
                             ClockEffect.Expired -> Haptics.expired(context)
                             ClockEffect.Defaulted -> Haptics.defaulted(context)
+                            ClockEffect.LastBoutReached -> Haptics.rolloverWarning(context)
                             is ClockEffect.Undone -> Haptics.tick(context)
                         }
                     }

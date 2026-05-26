@@ -34,4 +34,10 @@ object Haptics {
         val v = vibrator(context) ?: return
         v.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE))
     }
+
+    fun rolloverWarning(context: Context) {
+        val v = vibrator(context) ?: return
+        val pattern = longArrayOf(0, 80, 60, 80, 60, 200)
+        v.vibrate(VibrationEffect.createWaveform(pattern, -1))
+    }
 }

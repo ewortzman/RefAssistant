@@ -42,6 +42,7 @@ fun ExhCounterScreen(
     onReset: () -> Unit,
     onEndDual: () -> Unit,
     onNewEvent: () -> Unit,
+    onOpenSummary: () -> Unit,
     confirmReset: Boolean = true,
     isAmbient: Boolean = false
 ) {
@@ -62,7 +63,11 @@ fun ExhCounterScreen(
             Text(
                 text = "Event — $dualsInEvent duals",
                 style = MaterialTheme.typography.caption2,
-                color = if (isAmbient) Color.DarkGray else Color.Gray
+                color = if (isAmbient) Color.DarkGray else Color.Gray,
+                modifier = if (isAmbient) Modifier else Modifier.combinedClickable(
+                    onClick = onOpenSummary,
+                    onLongClick = {}
+                )
             )
 
             Spacer(Modifier.height(2.dp))
