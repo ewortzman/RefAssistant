@@ -218,7 +218,8 @@ class MatchViewModel(
         val now = System.currentTimeMillis()
         _uiState.update { state ->
             val format = state.weightFormat
-            if (format == WeightFormat.EXH || state.dualStartedAtEpochMs == 0L) return@update state
+            if (format == WeightFormat.EXH) return@update state
+            val startedAt = if (state.dualStartedAtEpochMs > 0L) state.dualStartedAtEpochMs else now
             val summary = DualSummary(
                 format = format,
                 startingWeight = state.matchOrder.firstOrNull()?.label ?: "?",
@@ -226,7 +227,7 @@ class MatchViewModel(
                 totalBouts = state.matchOrder.size,
                 redTeamScore = state.redTeamScore,
                 greenTeamScore = state.greenTeamScore,
-                startedAtEpochMs = state.dualStartedAtEpochMs,
+                startedAtEpochMs = startedAt,
                 endedAtEpochMs = now
             )
             state.copy(

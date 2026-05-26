@@ -96,6 +96,7 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                                 greenTeamScore = state.greenTeamScore,
                                 lastDualRedScore = lastDual?.redTeamScore,
                                 lastDualGreenScore = lastDual?.greenTeamScore,
+                                exhMatchNumber = state.exhCount + 1,
                                 teamScoreTrackingEnabled = settings.teamScoreTrackingEnabled,
                                 onNextMatch = viewModel::nextMatch,
                                 onRecordBoutResult = viewModel::recordBoutResult,

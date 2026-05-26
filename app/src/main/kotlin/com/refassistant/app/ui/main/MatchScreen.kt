@@ -55,6 +55,7 @@ fun MatchScreen(
     greenTeamScore: Int,
     lastDualRedScore: Int?,
     lastDualGreenScore: Int?,
+    exhMatchNumber: Int,
     teamScoreTrackingEnabled: Boolean,
     onNextMatch: () -> Unit,
     onRecordBoutResult: (ChoiceSide, BoutOutcome) -> Unit,
@@ -234,9 +235,14 @@ fun MatchScreen(
                     isAmbient = isAmbient
                 )
                 Spacer(Modifier.width(4.dp))
+                val weightLabel = if (currentWeight.isExhibition)
+                    "${currentWeight.label} - $exhMatchNumber"
+                else currentWeight.label
                 Text(
-                    text = currentWeight.label,
-                    style = MaterialTheme.typography.display1,
+                    text = weightLabel,
+                    style = if (currentWeight.isExhibition)
+                        MaterialTheme.typography.display2
+                    else MaterialTheme.typography.display1,
                     color = Color.White,
                     textAlign = TextAlign.Center,
                     modifier = if (isAmbient) Modifier else Modifier.combinedClickable(
