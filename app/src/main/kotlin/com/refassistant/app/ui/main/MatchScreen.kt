@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Button
+import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
@@ -55,6 +58,7 @@ fun MatchScreen(
     teamScoreTrackingEnabled: Boolean,
     onNextMatch: () -> Unit,
     onRecordBoutResult: (ChoiceSide, BoutOutcome) -> Unit,
+    onEndDual: () -> Unit,
     onSetFormatAndWeight: (WeightFormat, WeightClass) -> Unit,
     onSetChoice: (ChoiceSide, ChoiceParity) -> Unit,
     onDismissChoicePrompt: () -> Unit,
@@ -62,6 +66,8 @@ fun MatchScreen(
 ) {
     var showPicker by remember { mutableStateOf(false) }
     var showOutcomePicker by remember { mutableStateOf(false) }
+    var pendingEndDual by remember { mutableStateOf<PendingEndDual?>(null) }
+    val isLastBout = boutNumber > 0 && boutNumber == totalBouts
 
     if (showPicker && !isAmbient) {
         WeightClassPicker(
@@ -87,13 +93,42 @@ fun MatchScreen(
     if (showOutcomePicker && !isAmbient) {
         BoutOutcomePicker(
             onSelect = { winner, outcome ->
-                onRecordBoutResult(winner, outcome)
                 showOutcomePicker = false
+                if (isLastBout) {
+                    val (rNew, gNew) = projectedScore(
+                        redTeamScore, greenTeamScore, winner, outcome
+                    )
+                    pendingEndDual = PendingEndDual.Outcome(winner, outcome, rNew, gNew)
+                } else {
+                    onRecordBoutResult(winner, outcome)
+                }
             },
             onSkip = {
-                onNextMatch()
                 showOutcomePicker = false
+                if (isLastBout) {
+                    pendingEndDual = PendingEndDual.Skip(redTeamScore, greenTeamScore)
+                } else {
+                    onNextMatch()
+                }
             }
+        )
+        return
+    }
+
+    pendingEndDual?.let { pending ->
+        EndDualPrompt(
+            redScore = pending.redScore,
+            greenScore = pending.greenScore,
+            showScore = teamScoreTrackingEnabled,
+            onConfirm = {
+                when (pending) {
+                    is PendingEndDual.Outcome -> onRecordBoutResult(pending.winner, pending.outcome)
+                    is PendingEndDual.Skip -> onNextMatch()
+                }
+                onEndDual()
+                pendingEndDual = null
+            },
+            onCancel = { pendingEndDual = null }
         )
         return
     }
@@ -223,8 +258,13 @@ fun MatchScreen(
 
                 Button(
                     onClick = {
-                        if (currentWeight.isExhibition || !teamScoreTrackingEnabled) onNextMatch()
-                        else showOutcomePicker = true
+                        when {
+                            currentWeight.isExhibition -> onNextMatch()
+                            !teamScoreTrackingEnabled && isLastBout ->
+                                pendingEndDual = PendingEndDual.Skip(redTeamScore, greenTeamScore)
+                            !teamScoreTrackingEnabled -> onNextMatch()
+                            else -> showOutcomePicker = true
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth(0.65f)
@@ -271,6 +311,118 @@ fun MatchScreen(
                         )
                     )
             )
+        }
+    }
+}
+
+private sealed class PendingEndDual {
+    abstract val redScore: Int
+    abstract val greenScore: Int
+
+    data class Outcome(
+        val winner: ChoiceSide,
+        val outcome: BoutOutcome,
+        override val redScore: Int,
+        override val greenScore: Int
+    ) : PendingEndDual()
+
+    data class Skip(
+        override val redScore: Int,
+        override val greenScore: Int
+    ) : PendingEndDual()
+}
+
+private fun projectedScore(
+    red: Int,
+    green: Int,
+    winner: ChoiceSide,
+    outcome: BoutOutcome
+): Pair<Int, Int> {
+    if (winner == ChoiceSide.NONE || outcome == BoutOutcome.DOUBLE_FORFEIT) return red to green
+    val pts = outcome.teamPoints
+    return when (winner) {
+        ChoiceSide.RED -> (red + pts) to green
+        ChoiceSide.GREEN -> red to (green + pts)
+        ChoiceSide.NONE -> red to green
+    }
+}
+
+@Composable
+private fun EndDualPrompt(
+    redScore: Int,
+    greenScore: Int,
+    showScore: Boolean,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = "End dual?",
+                style = MaterialTheme.typography.title3,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (showScore) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "$redScore",
+                        style = MaterialTheme.typography.title2,
+                        color = Color(0xFFFF8A80)
+                    )
+                    Text(
+                        text = "  -  ",
+                        style = MaterialTheme.typography.title2,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = "$greenScore",
+                        style = MaterialTheme.typography.title2,
+                        color = Color(0xFF69F0AE)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = onCancel,
+                    modifier = Modifier.size(44.dp),
+                    colors = ButtonDefaults.secondaryButtonColors(),
+                    shape = CircleShape
+                ) {
+                    Text("✕", style = MaterialTheme.typography.title2, color = Color.White)
+                }
+
+                Spacer(modifier = Modifier.width(20.dp))
+
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.size(44.dp),
+                    colors = ButtonDefaults.primaryButtonColors(),
+                    shape = CircleShape
+                ) {
+                    Text("✓", style = MaterialTheme.typography.title2)
+                }
+            }
         }
     }
 }

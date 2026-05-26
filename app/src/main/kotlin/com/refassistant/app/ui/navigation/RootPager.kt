@@ -99,6 +99,7 @@ fun RootPager(viewModel: MatchViewModel, isAmbient: Boolean = false) {
                                 teamScoreTrackingEnabled = settings.teamScoreTrackingEnabled,
                                 onNextMatch = viewModel::nextMatch,
                                 onRecordBoutResult = viewModel::recordBoutResult,
+                                onEndDual = viewModel::endDualAndRecord,
                                 onSetFormatAndWeight = viewModel::setFormatAndWeight,
                                 onSetChoice = viewModel::setChoice,
                                 onDismissChoicePrompt = viewModel::dismissChoicePrompt,
